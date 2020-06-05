@@ -310,7 +310,7 @@ def FindOptimalCovarianceParameters(ResultsFilename):
     # Method = 'BFGS'
     # Method = 'CG'
     Method = 'Nelder-Mead'
-    Tolerance = 1e-6
+    Tolerance = 1e-4
 
     # Minimize Terminator to gracefully terminate scipy.optimize.minimize once tolerance is reached
     MinimizeTerminatorObj = MinimizeTerminator(Tolerance,Verbose=True)
@@ -462,7 +462,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     Lp = Results['Lp']
 
     # Smooth the data with Gaussian filter.
-    sigma = [2,2]  # in unit of data pixel size
+    sigma = [4,4]  # in unit of data pixel size
     Lp = scipy.ndimage.filters.gaussian_filter(Lp,sigma,mode='nearest')
 
     # Increase resolution for better contour plot
@@ -519,14 +519,14 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
 
     # Contour plot
     Levels = numpy.r_[numpy.linspace(Max,Max+(Min-Max)*0.93,10),numpy.linspace(Max+(Min-Max)*0.968,Max,1)][::-1]
-    c = ax.contour(x,y,z.T,Levels,colors='darkgray',linewidths=1)
+    c = ax.contour(x,y,z.T,Levels,colors='silver',linewidths=1)
     c.monochrome = True
 
     # Find location of min point of the data (two options below)
     # Option I: Find max from user input data
     # Optimal_Lp = 958.306
-    # Optimal_DecorrelationScale = 0.1623
-    # Optimal_nu = 24.049
+    # Optimal_DecorrelationScale = 0.17695437557900218
+    # Optimal_nu = 3.209863002872277
     # DecorrelationScale_OptimalIndex = numpy.argmin(numpy.abs(Optimal_DecorrelationScale - DecorrelationScale_HighRes))
     # nu_OptimalIndex = numpy.argmin(numpy.abs(Optimal_nu - nu_HighRes))
     # x_optimal = DecorrelationScale_HighRes[DecorrelationScale_OptimalIndex]
@@ -593,15 +593,15 @@ def ComputeLogLikelihoodVersusParameters(ResultsFilename):
     # BasisFunctionsType = 'Polynomial-0'
 
     # Trace estimation method
-    UseEigenvaluesMethod = False    # If set to True, it overrides the interpolation estimation methods
+    UseEigenvaluesMethod = True    # If set to True, it overrides the interpolation estimation methods
     # TraceEstimationMethod = 'NonOrthogonalFunctionsMethod'   # highest condtion number
     # TraceEstimationMethod = 'OrthogonalFunctionsMethod'      # still high condition number
     TraceEstimationMethod = 'OrthogonalFunctionsMethod2'       # best (lowest) condition number
     # TraceEstimationMethod = 'RBFMethod'
  
     # Axes arrays # SETTING
-    DecorrelationScale = numpy.linspace(0.1,0.3,100)
-    nu = numpy.linspace(1,25,100)
+    DecorrelationScale = numpy.linspace(0.1,0.3,61)
+    nu = numpy.linspace(1,25,60)
 
     # Log likelihood partial function
     LogLikelihood_PartialGridFunction = partial( \
@@ -647,7 +647,7 @@ if __name__ == "__main__":
 
     ResultsFilename = './doc/data/OptimalCovariance.pickle'
     PlotFilename = './doc/images/OptimalCovariance.pdf'
-    UseSavedResults = False
+    UseSavedResults = False  # SETTING
 
     if UseSavedResults:
         

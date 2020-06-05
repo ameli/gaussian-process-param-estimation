@@ -9,8 +9,13 @@ from scipy import sparse
 import matplotlib.pyplot as plt
 # import multiprocessing
 import psutil
-import ray
 import logging
+
+try:
+    import ray
+    RayInstalled = True
+except:
+    RayInstalled = False
 
 # =============
 # Generate Data
@@ -104,7 +109,8 @@ def CorrelationKernel(Distance,DecorrelationScale,nu):
 # Compute Correlation For A Process
 # =================================
 
-# @ray.remote
+# if RayInstalled:
+    # @ray.remote
 def ComputeCorrelationForAProcess(DecorrelationScale,nu,KernelThreshold,x,y,UseSparse,NumCPUs,StartIndex):
     """
     Computes correlation at the ColumnIndex-th column and row of K.
@@ -181,6 +187,10 @@ def GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse):
             raise ValueError('Adjacency: %0.2f. Correlation matrix will become identity since Kernel length is less that grid size. To increase adjacency, consider decreasing KernelThreshold or increase DecorrelationScale.'%(Adjacency))
 
     RunInParallel = False  # SETTING
+
+    # Disable parallel processing if ray is not installed
+    if not RayInstalled:
+        RunInParallel = False
 
     # If matrice are sparse, it is better to generate columns of correlation in parallel
     if (RunInParallel == False) and (UseSparse == True):
