@@ -12,12 +12,10 @@ In additon, if you run the examples, the `matplotlib`, `seaborn` and `psutil`, a
 
     $ sudo conda install -c conda-forge matplotlib seaborn psutil -y
 
-Install `ray` through `pip` as follows,
+Install `ray` through `pip` as follows. If neccessary, use the full path to call pip, such as `/opt/miniconda/bin/pip`.
 
-   $ sudo conda install -c conda-forge pip -y
-
-   # If neccessary, use the full path for pip, such as /opt/miniconda/bin/pip
-   $ sudo pip install ray
+    $ sudo conda install -c conda-forge pip -y
+    $ sudo pip install ray
     
 ### Usage
 
