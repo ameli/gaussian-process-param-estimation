@@ -459,18 +459,14 @@ def LogLikelihood_GridFunction( \
 # Plot Log Likelihood Versus Parameters
 # =====================================
 
-def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
+def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithPrior):
     """
     This function plots the results of the "ComputeLogLikelihoodVersusParameters" function.
     """
 
     print('Plot results ...')
 
-    # To plot results with or without prior
-    # PlotDataWithoutPrior = True  # SETTING
-    PlotDataWithoutPrior = False  # SETTING
-
-    if PlotDataWithoutPrior:
+    if PlotDataWithPrior == False:
         # Plots for data without prior
         CutData = 0.92
         Clim = 0.87
@@ -542,7 +538,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     cbar = fig.colorbar(c,pad=0.025)
     if Clim is not None:
         c.set_clim(0,Clim)   # Used to plot data without prior
-    if PlotDataWithoutPrior:
+    if PlotDataWithtPrior == False:
         cbar.set_ticks([0,0.3,0.6,0.9,1])
     else:
         cbar.set_ticks([0,0.5,1,1.5,1.9])
@@ -550,7 +546,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     # Contour plot
     # Levels = numpy.r_[numpy.linspace(Max,Max+(Min-Max)*0.93,10),numpy.linspace(Max+(Min-Max)*0.968,Max,1)][::-1]
 
-    if PlotDataWithoutPrior == True:
+    if PlotDataWithPrior == False:
         Levels = numpy.r_[0.03,numpy.arange(0.1,0.9,0.1)]
     else:
         Levels = numpy.r_[0.05,0.15,numpy.arange(0.3,1.9,0.2)]
@@ -579,7 +575,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
 
     # Plot min point of the data
     ax.plot(x_optimal,y_optimal,marker='o',color='white',markersize=4,zorder = 100)
-    if PlotDataWithoutPrior:
+    if PlotDataWithPrior == False:
         # Without prior. Places text below the max point
         ax.text(x_optimal,y_optimal-0.7,r'$(\hat{\alpha},\hat{\nu})$',va='top',ha='center',zorder=100,color='white')
     else:
@@ -593,7 +589,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     ax.set_ylabel(r'$\nu$')
     # ax.set_yscale('log')
 
-    if PlotDataWithoutPrior:
+    if PlotDataWithPrior == False:
         # Plot data without prior. The data is likelihood
         ax.set_title('Profile Log Likelihood')
         cbar.set_label(r'$L_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}) - L_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu)$')
@@ -702,10 +698,12 @@ if __name__ == "__main__":
     # PlotFilename = './doc/images/OptimalCovariance.pdf'
 
     # Without prior
+    # PlotDataWithPrior = False
     # ResultsFilename = './doc/data/OptimalCovariance_WithoutPrior.pickle'
     # PlotFilename = './doc/images/OptimalCovariance_WithoutPrior.pdf'
 
     # With prior
+    PlotDataWithPrior = True
     ResultsFilename = './doc/data/OptimalCovariance_WithPrior.pickle'
     PlotFilename = './doc/images/OptimalCovariance_WithPrior.pdf'
 
@@ -714,7 +712,7 @@ if __name__ == "__main__":
     if UseSavedResults:
         
         # Plot previously generated data
-        PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
+        PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithPrior)
 
     else:
 

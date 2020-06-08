@@ -158,7 +158,6 @@ def PlotResults(AllResults):
     Colors2 = sns.color_palette("YlGn_d",NumPlots)[::-1]
     Colors3 = sns.color_palette("PuBuGn_d",NumPlots)[::-1]
 
-    # fig,ax = plt.subplots()
     fig,ax = plt.subplots(figsize=(8.8,4.2))
     ax2 = ax.twinx()
 
@@ -231,10 +230,8 @@ def PlotResults(AllResults):
     plt.tight_layout()
 
     SaveDir = './doc/images/'
-    # SaveDir = '../../paper/figures/'
     SaveFullname = SaveDir + 'NoiseLevel.pdf'
     plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-    # plt.savefig(SaveFullname,bbox_inches='tight')
     print('Plot saved to %s.'%(SaveFullname))
     # plt.show()
 
