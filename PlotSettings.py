@@ -25,6 +25,7 @@ if UseLaTeX:
         # plt.rc('text',usetex=True)
         matplotlib.rcParams['text.usetex'] = True
         matplotlib.rcParams['text.latex.preview'] = True
+        matplotlib.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
         matplotlib.font_manager._rebuild()
     except:
         raise ValueError('LaTeX is not installed or not configured. Disable "UseLaTeX".')

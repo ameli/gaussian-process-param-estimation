@@ -107,11 +107,13 @@ def PartialLikelihoodFunction( \
         # Prior1 = UniformPrior(DecorrelationScale,[0.1,0.3])
         # Prior2 = UniformPrior(nu,[0.5,25])
 
-        # Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf])
-        # Prior2 = UniformPrior(nu,[0,25])
+        # Uniform prior
+        Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf])
+        Prior2 = UniformPrior(nu,[0,25])
 
-        Prior1 = 1.0 / (1.0 + DecorrelationScale)**2
-        Prior2 = 1.0 / (1.0 + nu/25)**2
+        # Inverse square prior
+        # Prior1 = 1.0 / (1.0 + DecorrelationScale)**2
+        # Prior2 = 1.0 / (1.0 + nu/25)**2
 
         # If prior is zero, do not compute likelihood
         if (Prior1 == 0) or (Prior2 == 0):
@@ -145,11 +147,13 @@ def PartialLikelihoodFunction( \
         # Prior3 = UniformPrior(Sigma,[0,1])
         # Prior4 = UniformPrior(Sigma0,[0,1])
 
-        # Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf])
-        # Prior2 = UniformPrior(nu,[0,25])
+        # Uniform prior
+        Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf])
+        Prior2 = UniformPrior(nu,[0,25])
 
-        Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf]) / (1.0 + DecorrelationScale)**2
-        Prior2 = UniformPrior(nu,[0,numpy.inf]) / (1.0 + nu/25)**2
+        # Inverse square prior
+        # Prior1 = UniformPrior(DecorrelationScale,[0,numpy.inf]) / (1.0 + DecorrelationScale)**2
+        # Prior2 = UniformPrior(nu,[0,numpy.inf]) / (1.0 + nu/25)**2
 
         Prior3 = UniformPrior(Sigma,[0,numpy.inf])
         Prior4 = UniformPrior(Sigma0,[0,numpy.inf])
@@ -287,7 +291,7 @@ def FindOptimalCovarianceParameters(ResultsFilename):
             NumPoints,NoiseMagnitude,GridOfPoints,BasisFunctionsType,UseEigenvaluesMethod,TraceEstimationMethod,UseSparse)
 
     # Guesses for the search parameters
-    UseDirectMethod = False   # SETTING
+    UseDirectMethod = True   # SETTING
     if UseDirectMethod == True:
 
         # uses Direct method, optimizing over the space of 4 parameters
@@ -308,6 +312,9 @@ def FindOptimalCovarianceParameters(ResultsFilename):
 
     # Local optimization settings
     # Method = 'BFGS'
+    # Method = 'L-BFGS-B'
+    # Method = 'SLSQP'
+    # Method = 'trust-constr'
     # Method = 'CG'
     Method = 'Nelder-Mead'
     Tolerance = 1e-4
@@ -319,24 +326,18 @@ def FindOptimalCovarianceParameters(ResultsFilename):
     time0 = time.process_time()
     try:
         # Local optimization method (use for both direct and presented method)
-        Res = scipy.optimize.minimize(LogLikelihood_PartialFunction,GuessParameters,method=Method,tol=Tolerance,
-                callback=MinimizeTerminatorObj.__call__,
-                options={'maxiter':1000,'xatol':Tolerance,'fatol':Tolerance,'disp':True})
+        # Res = scipy.optimize.minimize(LogLikelihood_PartialFunction,GuessParameters,method=Method,tol=Tolerance,
+        #         callback=MinimizeTerminatorObj.__call__,
+        #         options={'maxiter':1000,'xatol':Tolerance,'fatol':Tolerance,'disp':True})
 
         # Global optimization methods (use for direct method)
-        # Res = scipy.optimize.differential_evolution(LogLikelihood_PartialFunction,Bounds,workers=-1,tol=Tolerance)
-        # Res = scipy.optimize.dual_annealing(LogLikelihood_PartialFunction,Bounds,maxiter=5000)
-        # Res = scipy.optimize.shgo(LogLikelihood_PartialFunction,Bounds)
+        numpy.random.seed(31)   # for repeatability of results
+        Res = scipy.optimize.differential_evolution(LogLikelihood_PartialFunction,Bounds,workers=-1,tol=Tolerance,atol=Tolerance,
+                updating='deferred',polish=True,strategy='best1bin',popsize=100,maxiter=200) # Works well
+        # Res = scipy.optimize.dual_annealing(LogLikelihood_PartialFunction,Bounds,maxiter=500)
+        # Res = scipy.optimize.shgo(LogLikelihood_PartialFunction,Bounds,
+        #         options={'minimize_every_iter': True,'local_iter': True,'minimizer_kwargs':{'method': 'Nelder-Mead'}})
         # Res = scipy.optimize.basinhopping(LogLikelihood_PartialFunction,x0=GuessParameters)
-
-        # Brute Force optimization method (use for direct method)
-        # rranges = ((0.1,0.3),(0.5,25))
-        # Res = scipy.optimize.brute(LogLikelihood_PartialFunction,ranges=rranges,full_output=True,finish=scipy.optimize.fmin,workers=-1,Ns=30)
-        # Optimal_DecorrelationScale = Res[0][0]
-        # Optimal_nu = Res[0][1]
-        # max_lp = -Res[1]
-
-        print(Res)
 
         # Extract results from Res output
         StateVector = Res.x
@@ -344,6 +345,18 @@ def FindOptimalCovarianceParameters(ResultsFilename):
         Iterations = Res.nit
         Message = Res.message
         Success = Res.success
+
+        print(Res)
+
+        # Brute Force optimization method (use for direct method)
+        # rranges = ((0.1,0.3),(0.5,25))
+        # Res = scipy.optimize.brute(LogLikelihood_PartialFunction,ranges=rranges,full_output=True,finish=scipy.optimize.fmin,workers=-1,Ns=30)
+        # Optimal_DecorrelationScale = Res[0][0]
+        # Optimal_nu = Res[0][1]
+        # max_lp = -Res[1]
+        # Iterations = None
+        # Message = "Using bute force"
+        # Sucess = True
 
     except MinimizeTerminated:
 
@@ -453,6 +466,19 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
 
     print('Plot results ...')
 
+    # To plot results with or without prior
+    # PlotDataWithoutPrior = True  # SETTING
+    PlotDataWithoutPrior = False  # SETTING
+
+    if PlotDataWithoutPrior:
+        # Plots for data without prior
+        CutData = 0.92
+        Clim = 0.87
+    else:
+        # Plots for data with prior
+        CutData = numpy.inf
+        Clim = None
+
     # Open file
     with open(ResultsFilename,'rb') as handle:
         Results = pickle.load(handle)
@@ -462,7 +488,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     Lp = Results['Lp']
 
     # Smooth the data with Gaussian filter.
-    sigma = [4,4]  # in unit of data pixel size
+    sigma = [2,2]  # in unit of data pixel size
     Lp = scipy.ndimage.filters.gaussian_filter(Lp,sigma,mode='nearest')
 
     # Increase resolution for better contour plot
@@ -476,11 +502,12 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     # We will plot the difference of max of Lp to Lp, called z
     MaxLp = numpy.abs(numpy.max(Lp))
     z = MaxLp - Lp
+    z[z>CutData] = CutData   # Used for plotting data without prior
     Min = numpy.min(z)
     Max = numpy.max(z)
 
     # Figure
-    fig,ax=plt.subplots()
+    fig,ax=plt.subplots(figsize=(6.2,4.8))
 
     # Adjust bounds of a colormap
     def truncate_colormap(cmap, minval=0.0,maxval=1.0,n=2000):
@@ -512,14 +539,23 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     # Contour fill Plot
     Levels = numpy.linspace(Min,Max,2000)
     c = ax.contourf(x,y,z.T,Levels,cmap=ColorMap,zorder=-9)
-    cbar = fig.colorbar(c)
-    cbar.set_label(r'$L_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}) - L_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu)$')
-    c.set_clim(0,1.1)
-    cbar.set_ticks([0,0.05,0.2,0.6,1])
+    cbar = fig.colorbar(c,pad=0.025)
+    if Clim is not None:
+        c.set_clim(0,Clim)   # Used to plot data without prior
+    if PlotDataWithoutPrior:
+        cbar.set_ticks([0,0.3,0.6,0.9,1])
+    else:
+        cbar.set_ticks([0,0.5,1,1.5,1.9])
 
     # Contour plot
-    Levels = numpy.r_[numpy.linspace(Max,Max+(Min-Max)*0.93,10),numpy.linspace(Max+(Min-Max)*0.968,Max,1)][::-1]
+    # Levels = numpy.r_[numpy.linspace(Max,Max+(Min-Max)*0.93,10),numpy.linspace(Max+(Min-Max)*0.968,Max,1)][::-1]
+
+    if PlotDataWithoutPrior == True:
+        Levels = numpy.r_[0.03,numpy.arange(0.1,0.9,0.1)]
+    else:
+        Levels = numpy.r_[0.05,0.15,numpy.arange(0.3,1.9,0.2)]
     c = ax.contour(x,y,z.T,Levels,colors='silver',linewidths=1)
+    ax.clabel(c,inline=True,fontsize=10,fmt='%1.2f',colors='silver')
     c.monochrome = True
 
     # Find location of min point of the data (two options below)
@@ -543,7 +579,12 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
 
     # Plot min point of the data
     ax.plot(x_optimal,y_optimal,marker='o',color='white',markersize=4,zorder = 100)
-    ax.text(x_optimal,y_optimal-0.7,r'$(\hat{\alpha},\hat{\nu})$',va='top',ha='center',zorder=100,color='white')
+    if PlotDataWithoutPrior:
+        # Without prior. Places text below the max point
+        ax.text(x_optimal,y_optimal-0.7,r'$(\hat{\alpha},\hat{\nu})$',va='top',ha='center',zorder=100,color='white')
+    else:
+        # With prior. Places the text above the max point
+        ax.text(x_optimal-0.006,y_optimal+0.49,r'$(\hat{\alpha},\hat{\nu})$',va='bottom',ha='center',zorder=100,color='white')
 
     # Axes
     ax.set_xticks(numpy.arange(0.1,0.31,0.05))
@@ -551,7 +592,15 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename):
     ax.set_xlabel(r'$\alpha$')
     ax.set_ylabel(r'$\nu$')
     # ax.set_yscale('log')
-    ax.set_title('Maximum Log Likelihood')
+
+    if PlotDataWithoutPrior:
+        # Plot data without prior. The data is likelihood
+        ax.set_title('Profile Log Likelihood')
+        cbar.set_label(r'$L_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}) - L_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu)$')
+    else:
+        # Plot data with prior. The data is posteror
+        ax.set_title('Profile Log Posterior')
+        cbar.set_label(r'$\log p_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}|\boldsymbol{z}) - \log p_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu|\boldsymbol{z})$')
 
     # To reduce file size, rasterize contour fill plot
     plt.gca().set_rasterization_zorder(-1)
@@ -644,10 +693,23 @@ def ComputeLogLikelihoodVersusParameters(ResultsFilename):
 # ====
 
 if __name__ == "__main__":
+    """
+    When plotting, make sure to set CutData and Clim for each of with and without prior data cases.
+    """
 
-    ResultsFilename = './doc/data/OptimalCovariance.pickle'
-    PlotFilename = './doc/images/OptimalCovariance.pdf'
-    UseSavedResults = False  # SETTING
+    # Generic filesnames
+    # ResultsFilename = './doc/data/OptimalCovariance.pickle'
+    # PlotFilename = './doc/images/OptimalCovariance.pdf'
+
+    # Without prior
+    # ResultsFilename = './doc/data/OptimalCovariance_WithoutPrior.pickle'
+    # PlotFilename = './doc/images/OptimalCovariance_WithoutPrior.pdf'
+
+    # With prior
+    ResultsFilename = './doc/data/OptimalCovariance_WithPrior.pickle'
+    PlotFilename = './doc/images/OptimalCovariance_WithPrior.pdf'
+
+    UseSavedResults = True  # SETTING
 
     if UseSavedResults:
         
@@ -659,8 +721,8 @@ if __name__ == "__main__":
         # Choose either of the followings
 
         # 1. Generate new data for plot (may take long time)
-        ComputeLogLikelihoodVersusParameters(ResultsFilename)
-        PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
+        # ComputeLogLikelihoodVersusParameters(ResultsFilename)
+        # PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
 
         # 2. Find optimal parameters (may take long time)
-        # FindOptimalCovarianceParameters(ResultsFilename)
+        FindOptimalCovarianceParameters(ResultsFilename)
