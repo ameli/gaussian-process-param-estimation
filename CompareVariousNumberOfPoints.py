@@ -22,7 +22,7 @@ from PlotSettings import *
 # Maximize Likelihood With Derivative Method
 # ==========================================
 
-def MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse):
+def MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse,DecorrelationScale):
     """
     Maximies L using the derivative of L with respect to eta.
     To compute the trace of K inverse it uses the interpolation estimation method.
@@ -42,7 +42,6 @@ def MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse):
         x,y,z = Data.GenerateData(NumPoints[i],NoiseMagnitude,GridOfPoints)
 
         # Generate Correlation Matrix
-        DecorrelationScale = 0.005  # CHANGED 0.005
         nu = 0.5
         K = Data.GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse)
 
@@ -65,13 +64,10 @@ def MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse):
 
         # Precompute trace interpolation function
         Time0 = time.process_time()
-        # TraceEstimationUtilities = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,4e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3])
-        # TraceEstimationUtilities = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-2,1e-1,1,1e+1,1e+2,1e+3])   # SETTING
         TraceEstimationUtilities = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,TraceEstimationMethod,None,[1,1e+1,4e+1,1e+2,1e+3])   # SETTING
         Time1 = time.process_time()
 
         # Finding optimal parameters with derivative of likelihood
-        # Interval_eta = [1e-2,1e+3]
         Interval_eta = [1,1e+3]  # SETTING
         Results = LikelihoodEstimation.FindZeroOfLogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities,Interval_eta)
         Time2 = time.process_time()
@@ -109,7 +105,7 @@ def MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse):
 # Maximize Likelihood Directly
 # ============================
 
-def MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,UseEigenvaluesMethod):
+def MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,DecorrelationScale,UseEigenvaluesMethod):
     """
     Maximizes L using the space of parameters sigma and sigma0,
     To compute determinant of K, it uses the eigenvalue method.
@@ -128,7 +124,6 @@ def MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,UseEigenvaluesMethod)
         x,y,z = Data.GenerateData(NumPoints[i],NoiseMagnitude,GridOfPoints)
 
         # Generate Correlation Matrix
-        DecorrelationScale = 0.005
         nu = 0.5
         K = Data.GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse)
 
@@ -242,24 +237,37 @@ def LogRegression(x,y,IndexStart,IndexEnd,N):
 # Compare Computation With Various Number Of Points
 # =================================================
 
-def CompareComputationWithVariousNumberOfPoints(ResultsFilename):
+def CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSparse):
 
-    UseSparse = True   # SETTING
-    # NumPoints = numpy.rint(numpy.logspace(5,11,20,base=2)).astype(int)   # SETTING
-    # NumPointsPowers = numpy.arange(8,12.1,0.1)                             # SETTING
-    NumPointsPowers = numpy.arange(12,19.1,0.25)                             # SETTING
-    NumPoints = numpy.rint(numpy.sqrt(2**NumPointsPowers)).astype(int)   
-    DerivativeMethodResults =  MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse)
-    # DirectMethodResults1 =  MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,True)     # Use eigenvalues to compute determinant
-    DirectMethodResults1 = {}
-    # DirectMethodResults2 =  MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,False)    # do not use eigenalues method, compute determinant with Cholesky
-    DirectMethodResults2 = {}
+    if UseSparse:
+
+        # Settings for sparse matrix
+        DecorrelationScale = 0.005  # for sparse matrix
+        NumPointsPowers = numpy.arange(12,20.1,0.5)    # For derivative method
+        NumPointsPowers2 = numpy.arange(12,16.1,0.5)   # For direct method
+
+    else:
+
+        # Settings for dense matrix
+        DecorrelationScale = 0.1    # for dense matrix
+        NumPointsPowers = numpy.arange(9,12.1,0.5)    # For derivative method
+        NumPointsPowers2 = numpy.arange(9,12.1,0.5)   # For direct method
+
+    # Number of points
+    NumPoints = numpy.rint(numpy.sqrt(2**NumPointsPowers)).astype(int)
+    NumPoints2 = numpy.rint(numpy.sqrt(2**NumPointsPowers2)).astype(int)
+   
+    # Computations
+    DerivativeMethodResults =  MaximizeLikelihoodWithDerivativeMethod(NumPoints,UseSparse,DecorrelationScale)
+    DirectMethodResults1 =  MaximizeLikelihoodWithDirectMethod(NumPoints2,UseSparse,DecorrelationScale,True)     # Use eigenvalues to compute determinant
+    # DirectMethodResults1 = {}
+    DirectMethodResults2 =  MaximizeLikelihoodWithDirectMethod(NumPoints2,UseSparse,DecorrelationScale,False)    # do not use eigenalues method, compute determinant with Cholesky
+    # DirectMethodResults2 = {}
 
     # Pickle results
     Results = \
     {
             'NumPointsPowers': NumPointsPowers,
-            'NumPoints': NumPoints,
             'DerivativeMethodResults': DerivativeMethodResults,
             'DirectMethodResults1': DirectMethodResults1,
             'DirectMethodResults2': DirectMethodResults2,
@@ -268,32 +276,150 @@ def CompareComputationWithVariousNumberOfPoints(ResultsFilename):
         pickle.dump(Results,handle,protocol=pickle.HIGHEST_PROTOCOL)
     print('Saved to %s.'%ResultsFilename)
 
+# ========================
+# Average Multiple Results
+# ========================
+
+def AverageMultipleResults(MultipleResults):
+    """
+    Each run may record different runtime. To moderate the fluctuations,
+    we averaga emultiple runtimes over all variables.
+    """
+
+    # -------------
+    # Average Array
+    # -------------
+
+    def AverageArray(List,MethodName):
+
+        if bool(List[0][MethodName]) == False:
+            return {}
+
+        NumData = len(List)
+        if NumData == 1:
+            return List[0][MethodName]
+
+        ArrayNames = ['ElapsedTime_Interpolation','ElapsedTime_NoiseEstimation','ElapsedTime_Total']
+        AveragedArraysList = []
+
+        for i in range(len(ArrayNames)):
+            
+            # Get the first array
+            Array = List[0][MethodName][ArrayNames[i]]
+
+            for j in range(1,NumData):
+                NewArray = List[j][MethodName][ArrayNames[i]]
+
+                try:
+                    Array = Array + NewArray
+                except:
+                    raise ValueError('Array size: %d, NewArray size: %d'%(Array.size,NewArray.size))
+
+            Array = Array / NumData
+            AveragedArraysList.append(Array)
+
+        AveragedResults = \
+        {
+            'NumPoints': List[0][MethodName]['NumPoints'],
+            'ElapsedTime_Interpolation': AveragedArraysList[0],
+            'ElapsedTime_NoiseEstimation': AveragedArraysList[1],
+            'ElapsedTime_Total': AveragedArraysList[2]
+        }
+
+        return AveragedResults
+
+    # ------------
+
+    NumResults = len(MultipleResults)
+
+    # If ony one results, do not average
+    if NumResults == 1:
+        return MultipleResults[0]
+
+    # Unpack the first results
+    NumPointsPowers = MultipleResults[0]['NumPointsPowers']
+
+    DerivativeMethodResults = AverageArray(MultipleResults,'DerivativeMethodResults')
+    DirectMethodResults1    = AverageArray(MultipleResults,'DirectMethodResults1')
+    DirectMethodResults2    = AverageArray(MultipleResults,'DirectMethodResults2')
+
+    AveragedResults = \
+    {
+        'DerivativeMethodResults': DerivativeMethodResults,
+        'DirectMethodResults1': DirectMethodResults1,
+        'DirectMethodResults2': DirectMethodResults2,
+    }
+
+    return AveragedResults
+
 # ============
 # Plot Results
 # ============
 
-def PlotResults(Results):
+def PlotResults(MultipleResultsFilenames,UseSparse):
+
+    MultipleResults = []
+
+    # Load files
+    for i in range(len(MultipleResultsFilenames)):
+
+        print('Loading %s.'%MultipleResultsFilenames[i])
+        with open(MultipleResultsFilenames[i],'rb') as handle:
+            MultipleResults.append(pickle.load(handle))
+
+    # Average Results
+    AveragedResults = AverageMultipleResults(MultipleResults)
 
     # Unpack results
-    NumPointsPowers = Results['NumPointsPowers']
-    NumPoints = Results['NumPoints']
-    DerivativeMethodResults = Results['DerivativeMethodResults']
-    DirectMethodResults1 = Results['DirectMethodResults1']
-    DirectMethodResults2 = Results['DirectMethodResults2']
+    NumPointsPowers = MultipleResults[0]['NumPointsPowers']
+    DerivativeMethodResults = AveragedResults['DerivativeMethodResults']
+    DirectMethodResults1 = AveragedResults['DirectMethodResults1']
+    DirectMethodResults2 = AveragedResults['DirectMethodResults2']
 
     N = 100
-    StartIndex = 0
+
+    if UseSparse:
+        # SParse matrices
+
+        # For derivative method
+        StartIndex = 6
+        EndIndex = -1
+
+        # For direct method 1
+        StartIndex1 = 3
+        EndIndex1 = -1
+
+        # For direct method 2
+        StartIndex2 = 3
+        EndIndex2 = -1
+
+    else:
+        # Dense matrices
+
+        # For derivative method
+        StartIndex = 0
+        EndIndex = -1
+
+        # For direct method 1
+        StartIndex1 = 0
+        EndIndex1 = -1
+
+        # For direct method 2
+        StartIndex2 = 0
+        EndIndex2 = -1
 
     if bool(DerivativeMethodResults):
-        DerivativeMethod_Slope_1,DerivativeMethod_xi_1,DerivativeMethod_yi_1 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_Interpolation'],StartIndex,-1,N)  # Start at 10
-        DerivativeMethod_Slope_2,DerivativeMethod_xi_2,DerivativeMethod_yi_2 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_NoiseEstimation'],StartIndex,-1,N)
-        DerivativeMethod_Slope_3,DerivativeMethod_xi_3,DerivativeMethod_yi_3 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_Total'],StartIndex,-1,N)
+        DerivativeMethod_Slope_1,DerivativeMethod_xi_1,DerivativeMethod_yi_1 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_Interpolation'],StartIndex,EndIndex,N)  # Start at 10
+        DerivativeMethod_Slope_2,DerivativeMethod_xi_2,DerivativeMethod_yi_2 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_NoiseEstimation'],StartIndex,EndIndex,N)
+        DerivativeMethod_Slope_3,DerivativeMethod_xi_3,DerivativeMethod_yi_3 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_Total'],StartIndex,EndIndex,N)
+
     if bool(DirectMethodResults1):
-        DirectMethod_Slope_1,DirectMethod_xi_1,DirectMethod_yi_1 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_Interpolation'],StartIndex,-1,N)   # Start at 19
-        DirectMethod_Slope_2,DirectMethod_xi_2,DirectMethod_yi_2 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_NoiseEstimation'],StartIndex,-1,N)
-        DirectMethod_Slope_3,DirectMethod_xi_3,DirectMethod_yi_3 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_Total'],StartIndex,-1,N)
+        DirectMethod_Slope_1,DirectMethod_xi_1,DirectMethod_yi_1 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_Interpolation'],StartIndex1,EndIndex1,N)   # Start at 19
+        DirectMethod_Slope_2,DirectMethod_xi_2,DirectMethod_yi_2 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_NoiseEstimation'],StartIndex1,EndIndex1,N)
+        DirectMethod_Slope_3,DirectMethod_xi_3,DirectMethod_yi_3 = LogRegression(DirectMethodResults1['NumPoints'],DirectMethodResults1['ElapsedTime_Total'],StartIndex1,EndIndex1,N)
+
     if bool(DirectMethodResults2):
-        DirectMethod2_Slope_2,DirectMethod2_xi_2,DirectMethod2_yi_2 = LogRegression(DirectMethodResults2['NumPoints'],DirectMethodResults2['ElapsedTime_NoiseEstimation'],StartIndex,-1,N)
+        DirectMethod2_Slope_2,DirectMethod2_xi_2,DirectMethod2_yi_2 = LogRegression(DirectMethodResults2['NumPoints'],DirectMethodResults2['ElapsedTime_NoiseEstimation'],StartIndex2,EndIndex2,N)
 
     # Plots
     fig,ax = plt.subplots(figsize=(9.8,4.2))
@@ -338,7 +464,10 @@ def PlotResults(Results):
     ax.set_ylabel('CPU time (second)')
     ax.set_title('Computation time versus number of points')
 
-    ax.set_ylim([1e-1,1e+5])
+    if UseSparse:
+        ax.set_ylim([1e-1,1e+4])
+    else:
+        ax.set_ylim([1e-1,1e+3])
     # ax.grid(True,axis='y')
     ax.grid(True,axis='y')
 
@@ -380,17 +509,20 @@ def PlotResults(Results):
         legend_handles3 = [EmptyHandle,EmptyHandle,EmptyHandle,r13,EmptyHandle,r23,EmptyHandle,EmptyHandle]
         legend_labels3 = [EmptyLabel,r'Maximize likelihood:','Experiment',EmptyLabel,'Line fit',EmptyLabel,'Slope','%0.2f'%(DirectMethod2_Slope_2)]
 
+        if bool(DirectMethodResults1):
+            TitleMethod2 = 'Direct Method II'
+        else:
+            TitleMethod2 = 'Direct Method'
+
         # Plot legends
-        legend3 = ax.legend(legend_handles3,legend_labels3,frameon=False,fontsize='x-small',ncol=4,loc='upper left',handletextpad=-2,bbox_to_anchor=(1.05,LegendHeight),title='Direct Method II')
+        legend3 = ax.legend(legend_handles3,legend_labels3,frameon=False,fontsize='x-small',ncol=4,loc='upper left',handletextpad=-2,bbox_to_anchor=(1.05,LegendHeight),title=TitleMethod2)
         legend3._legend_box.align = "left"
 
     plt.tight_layout()
 
-    # SaveDir = './doc/images/'
-    SaveDir = '../../paper/figures/'
+    SaveDir = './doc/images/'
     SaveFullname = SaveDir + 'ElapsedTime.pdf'
     plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-    # plt.savefig(SaveFullname,bbox_inches='tight')
     print('Plot saved to %s.'%(SaveFullname))
     # plt.show()
 
@@ -399,26 +531,27 @@ def PlotResults(Results):
 # ====
 
 if __name__ == "__main__":
-    
-    # File to load or to save
-    # ResultsFilename = './doc/data/Results_3.pickle'
-    # ResultsFilename = './doc/data/Results_Pow9_13_025_Cores20.pickle'
-    # ResultsFilename = './doc/data/Results_Pow9_13_0d25_Init_0d1.pickle'
-    # ResultsFilename = './doc/data/Results_Pow9_12_05_1.pickle'  # without LogEta
-    ResultsFilename = './doc/data/Results_Pow9_12_05.pickle'  # with LogEta
 
+    # UseSparse = True
+    UseSparse = False
+    
+    # UseSavedResults = False
     UseSavedResults = True
+    
     if UseSavedResults:
 
-        # Load file
-        print('Loading %s.'%ResultsFilename)
-        with open(ResultsFilename,'rb') as handle:
-            Results = pickle.load(handle)
-
-        # Plot
-        PlotResults(Results)
+        # Plot previously generated results (perhaps, multiple results)
+        MultipleResultsFilenames = [
+                './doc/data/VariousNumberOfPoints-dense.pickle']
+                # './doc/data/VariousNumberOfPoints-sparse.pickle']
+                # './doc/data/VariousNumberOfPoints_2.pickle',
+                # './doc/data/VariousNumberOfPoints_3.pickle',
+                # './doc/data/VariousNumberOfPoints_4.pickle']
+        PlotResults(MultipleResultsFilenames,UseSparse)
 
     else:
 
         # Generate new data
-        CompareComputationWithVariousNumberOfPoints(ResultsFilename) 
+        # ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
+        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
+        CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSpase)

@@ -73,7 +73,7 @@ class TraceEstimation():
             """
 
             # Matrix size limit to switch direct to indirect algorthm
-            UseInverseMatrix = False  # SETTING
+            UseInverseMatrix = True  # SETTING
 
             # Determine to use Sparse
             UseSparse = False
@@ -229,9 +229,9 @@ class TraceEstimation():
 
         # --------------
 
-        # Trace = CholeksyMethod(A)
+        Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        Trace = StochasticLanczosQuadratureMethod(A)
+        # Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 

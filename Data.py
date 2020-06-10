@@ -110,7 +110,7 @@ def CorrelationKernel(Distance,DecorrelationScale,nu):
 # =================================
 
 # if RayInstalled:
-    # @ray.remote
+@ray.remote
 def ComputeCorrelationForAProcess(DecorrelationScale,nu,KernelThreshold,x,y,UseSparse,NumCPUs,StartIndex):
     """
     Computes correlation at the ColumnIndex-th column and row of K.
@@ -186,7 +186,7 @@ def GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse):
         if Adjacency < 1.0:
             raise ValueError('Adjacency: %0.2f. Correlation matrix will become identity since Kernel length is less that grid size. To increase adjacency, consider decreasing KernelThreshold or increase DecorrelationScale.'%(Adjacency))
 
-    RunInParallel = False  # SETTING
+    RunInParallel = True  # SETTING
 
     # Disable parallel processing if ray is not installed
     if not RayInstalled:
@@ -224,6 +224,8 @@ def GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse):
             ray.shutdown()
 
         except:
+
+            print('Ray parallel processing to generate correlation failed. Try with a single process ...')
 
             # Sometimes Ray's communications fail. Compute correlation withput parallel section
             K = ComputeCorrelationForAProcess(DecorrelationScale,nu,KernelThreshold,x,y,UseSparse,None,None)
@@ -270,7 +272,8 @@ def GenerateLinearModelBasisFunctions(x,y,BasisFunctionsType):
     if BasisFunctionsType == 'Polynomial-2-Trigonometric-1':
         # Polynomials of x and y of order 2, and trigonometric functions of x and y of order 1. X is matrix of size n*10
         # X = numpy.array([numpy.ones(n),x,y,x**2,x*y,y**2,numpy.sin(x*numpy.pi),numpy.cos(x*numpy.pi),numpy.sin(y*numpy.pi),numpy.cos(y*numpy.pi)]).T
-        X = numpy.array([numpy.ones(n),numpy.sin(x*numpy.pi),numpy.cos(x*numpy.pi),numpy.sin(y*numpy.pi),numpy.cos(y*numpy.pi)]).T
+        # X = numpy.array([numpy.ones(n),numpy.sin(x*numpy.pi),numpy.cos(x*numpy.pi),numpy.sin(y*numpy.pi),numpy.cos(y*numpy.pi)]).T
+        X = numpy.array([numpy.sin(x*numpy.pi),numpy.cos(x*numpy.pi),numpy.sin(y*numpy.pi),numpy.cos(y*numpy.pi)]).T
 
     elif BasisFunctionsType == 'Polynomial-5':
         # Polynomial of x and y or order 3. X is matrix of size n*10

@@ -499,7 +499,7 @@ class LikelihoodEstimation():
 
         print('Maximize log likelihood with sigma sigma0 ...')
 
-        # Initial points
+        # Initial points # SETTING
         Guess_sigma = 0.1
         Guess_eta = 0.1
         GuessParameters = [Guess_sigma,Guess_eta]
@@ -513,7 +513,7 @@ class LikelihoodEstimation():
         # Method = 'BFGS'
         # Method = 'CG'
         Method = 'Nelder-Mead'
-        Tolerance = 1e-6
+        Tolerance = 1e-6 # SETTING
         Res = scipy.optimize.minimize(LogLikelihood_PartialFunction,GuessParameters,method=Method,tol=Tolerance)
 
         # Extract results
@@ -545,7 +545,7 @@ class LikelihoodEstimation():
 
         print('Maximize log likelihood with sigma sigma0 ...')
 
-        # Initial points
+        # Initial points # SETTING
         Guess_sigma = 0.001
         Guess_sigma0 = 0.001
         GuessParameters = [Guess_sigma,Guess_sigma0]
@@ -559,7 +559,7 @@ class LikelihoodEstimation():
         # Method = 'BFGS'
         # Method = 'CG'
         Method = 'Nelder-Mead'
-        Tolerance = 1e-6
+        Tolerance = 1e-6 # SETTING
         Res = scipy.optimize.minimize(LogLikelihood_PartialFunction,GuessParameters,method=Method,tol=Tolerance)
         print('Iter: %d, Eval: %d, Success: %s'%(Res.nit,Res.nfev,Res.success))
 
@@ -671,8 +671,8 @@ class LikelihoodEstimation():
 
         if BracketFound:
             # There is a sign change in the interval of eta. Find root of lp derivative
-            Tolerance = 1e-6
-            MaxIterations = 100
+            Tolerance = 1e-6     # SETTING
+            MaxIterations = 100  # SETTING
 
             # Find roots using Brent method
             # Method = 'brentq'
