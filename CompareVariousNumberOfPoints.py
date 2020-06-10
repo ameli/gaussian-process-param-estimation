@@ -532,8 +532,8 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
 
 if __name__ == "__main__":
 
-    # UseSparse = True
-    UseSparse = False
+    UseSparse = True
+    # UseSparse = False
     
     # UseSavedResults = False
     UseSavedResults = True
@@ -542,8 +542,8 @@ if __name__ == "__main__":
 
         # Plot previously generated results (perhaps, multiple results)
         MultipleResultsFilenames = [
-                './doc/data/VariousNumberOfPoints-dense.pickle']
-                # './doc/data/VariousNumberOfPoints-sparse.pickle']
+                # './doc/data/VariousNumberOfPoints-dense.pickle']
+                './doc/data/VariousNumberOfPoints-sparse.pickle']
                 # './doc/data/VariousNumberOfPoints_2.pickle',
                 # './doc/data/VariousNumberOfPoints_3.pickle',
                 # './doc/data/VariousNumberOfPoints_4.pickle']
@@ -552,6 +552,6 @@ if __name__ == "__main__":
     else:
 
         # Generate new data
-        # ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
-        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
+        ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
+        # ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
         CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSpase)
