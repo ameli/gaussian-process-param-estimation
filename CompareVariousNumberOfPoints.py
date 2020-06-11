@@ -11,6 +11,7 @@ import time
 import numpy
 import scipy
 from scipy import linalg
+from scipy import interpolate
 
 # Classes
 import Data
@@ -156,7 +157,7 @@ def MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,DecorrelationScale,Us
                 K_eigenvalues[:NumNoneZeroEig] = scipy.sparse.linalg.eigsh(K,NumNoneZeroEig,which='LM',tol=1e-3,return_eigenvectors=False)
 
             else:
-                K_eigenvalues = scipy.linalg.eigh(K)[0]
+                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)[0]
             EigenvaluesMethodUtilities = \
             {
                 'K_eigenvalues': K_eigenvalues
@@ -352,6 +353,58 @@ def AverageMultipleResults(MultipleResults):
 
     return AveragedResults
 
+# ===============
+# Snap To Power 2
+# ===============
+
+def SnapToPower2(Dictionary,NumPointsPowers):
+    """
+    This purpose of this function is to have a cleaner plots so the data are snapped to the axis ticks.
+
+    Dictionary has four fields,
+
+        Dictionary['NumPoints']
+        Dictionary['ElapsedTime_Interpolation']
+        Dictionary['ElapsedTime_MaxLikelihood']
+        Dictionary['ElapsedTime_Total']
+
+    The Dictionary['NumPoints'] are often square integers. We find the closets power 2 (2**x) to these numbers. For example, 23**2 = 529 will be snapped to 2**9 = 512.
+    Once, the closets power 2 numbers are found on Dictionary['NumPoints'], the data on the other three arrays
+    will be also adjusted by linear interpolation.
+    """
+
+    # Data on x axis
+    x = Dictionary['NumPoints']
+    y1 = Dictionary['ElapsedTime_Interpolation']
+    y2 = Dictionary['ElapsedTime_NoiseEstimation']
+    y3 = Dictionary['ElapsedTime_Total']
+
+    # Find closets powers of 2
+    x_powers = numpy.log(x) / numpy.log(2.0)
+
+    # Snap x_powers to NumPointsPowers. These two arrays might have different lengths.
+    x_new = numpy.empty(x.shape)
+    for i in range(x.size):
+
+        # Find which element in NumPointsPowers is the closest to x[i]
+        MinIndex = numpy.argmin(numpy.abs(NumPointsPowers - x_powers[i]))
+        x_new[i] = 2**NumPointsPowers[MinIndex]
+
+    y1_new = scipy.interpolate.interp1d(x,y1,kind='linear',fill_value='extrapolate')(x_new)
+    y2_new = scipy.interpolate.interp1d(x,y2,kind='linear',fill_value='extrapolate')(x_new)
+    y3_new = scipy.interpolate.interp1d(x,y3,kind='linear',fill_value='extrapolate')(x_new)
+
+    # Update dictionary with the new data
+    Dictionary = \
+    {
+        'NumPoints': x_new,
+        'ElapsedTime_Interpolation': y1_new,
+        'ElapsedTime_NoiseEstimation': y2_new,
+        'ElapsedTime_Total': y3_new
+    }
+
+    return Dictionary
+
 # ============
 # Plot Results
 # ============
@@ -376,6 +429,11 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
     DirectMethodResults1 = AveragedResults['DirectMethodResults1']
     DirectMethodResults2 = AveragedResults['DirectMethodResults2']
 
+    # Snap the NumPoints in the data from square integers to powers of 2 integers.
+    DerivativeMethodResults = SnapToPower2(DerivativeMethodResults,NumPointsPowers)
+    DirectMethodResults1 = SnapToPower2(DirectMethodResults1,NumPointsPowers)
+    DirectMethodResults2 = SnapToPower2(DirectMethodResults2,NumPointsPowers)
+
     N = 100
 
     if UseSparse:
@@ -397,16 +455,16 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
         # Dense matrices
 
         # For derivative method
-        StartIndex = 0
-        EndIndex = -1
+        StartIndex = 1
+        EndIndex = -2
 
         # For direct method 1
-        StartIndex1 = 0
-        EndIndex1 = -1
+        StartIndex1 = 1
+        EndIndex1 = -2
 
         # For direct method 2
-        StartIndex2 = 0
-        EndIndex2 = -1
+        StartIndex2 = 1
+        EndIndex2 = -2
 
     if bool(DerivativeMethodResults):
         DerivativeMethod_Slope_1,DerivativeMethod_xi_1,DerivativeMethod_yi_1 = LogRegression(DerivativeMethodResults['NumPoints'],DerivativeMethodResults['ElapsedTime_Interpolation'],StartIndex,EndIndex,N)  # Start at 10
@@ -467,8 +525,8 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
     if UseSparse:
         ax.set_ylim([1e-1,1e+4])
     else:
-        ax.set_ylim([1e-1,1e+3])
-    # ax.grid(True,axis='y')
+        ax.set_ylim([1e-2,1e+3])
+    # ax.grid(True,axis='x')
     ax.grid(True,axis='y')
 
     # create blank rectangle
@@ -532,8 +590,8 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
 
 if __name__ == "__main__":
 
-    UseSparse = True
-    # UseSparse = False
+    # UseSparse = True
+    UseSparse = False
     
     # UseSavedResults = False
     UseSavedResults = True
@@ -542,8 +600,8 @@ if __name__ == "__main__":
 
         # Plot previously generated results (perhaps, multiple results)
         MultipleResultsFilenames = [
-                # './doc/data/VariousNumberOfPoints-dense.pickle']
-                './doc/data/VariousNumberOfPoints-sparse.pickle']
+                './doc/data/VariousNumberOfPoints-dense.pickle']
+                # './doc/data/VariousNumberOfPoints-sparse.pickle']
                 # './doc/data/VariousNumberOfPoints_2.pickle',
                 # './doc/data/VariousNumberOfPoints_3.pickle',
                 # './doc/data/VariousNumberOfPoints_4.pickle']
@@ -552,6 +610,6 @@ if __name__ == "__main__":
     else:
 
         # Generate new data
-        ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
-        # ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
-        CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSpase)
+        # ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
+        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
+        CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSparse)

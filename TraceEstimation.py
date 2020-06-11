@@ -279,7 +279,7 @@ class TraceEstimation():
                 K_eigenvalues[:NumNoneZeroEig] = scipy.sparse.linalg.eigsh(K,NumNoneZeroEig,which='LM',tol=1e-3,return_eigenvectors=False)
 
             else:
-                K_eigenvalues = scipy.linalg.eigh(K)[0]
+                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)[0]
             EigenvaluesMethodUtilities = \
             {
                 'K_eigenvalues': K_eigenvalues
