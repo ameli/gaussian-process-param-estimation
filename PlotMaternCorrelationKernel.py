@@ -102,11 +102,14 @@ if __name__ == "__main__":
         ax[1].set_ylabel(r'$K(r|\infty) - K(r|\nu)$')
         ax[1].set_title(r'Difference of Gaussian and Mat\'{e}rn kernels')
 
+    # Save plot
     plt.tight_layout()
-
     SaveDir = './doc/images/'
-    SaveFullname = SaveDir + 'MaternKernel.pdf'
-    plt.savefig(SaveFullname,transparent=True,bbox_inches='tight',pad_inches = 0)
-    print('Plot saved to %s.'%(SaveFullname))
-
-    plt.show()
+    SaveFilename = 'MaternKernel'
+    SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
+    SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
+    plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight',pad_inches=0)
+    plt.savefig(SaveFilename_SVG,transparent=True,bbox_inches='tight',pad_inches=0)
+    print('Plot saved to %s.'%(SaveFilename_PDF))
+    print('Plot saved to %s.'%(SaveFilename_SVG))
+    # plt.show()

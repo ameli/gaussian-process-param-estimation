@@ -1,3 +1,10 @@
+#! /usr/bin/env python
+
+"""
+Before running this code, make sure in TraceEstimation.py, the ComputeTraceOfInverse() is set to
+Cholsky method, with either UseInverse or without it.
+"""
+
 # =======
 # Imports
 # =======
@@ -38,13 +45,13 @@ def ComputeNoiseForSingleData():
     nu = 0.5
     K = Data.GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse)
 
-    BasisFunctionsType = 'Polynomial-2-Trigonometric-1'
-    # BasisFunctionsType = 'Polynomial-5'
-    # BasisFunctionsType = 'Polynomial-4'
-    # BasisFunctionsType = 'Polynomial-3'
-    # BasisFunctionsType = 'Polynomial-2'
-    # BasisFunctionsType = 'Polynomial-1'
     # BasisFunctionsType = 'Polynomial-0'
+    # BasisFunctionsType = 'Polynomial-1'
+    BasisFunctionsType = 'Polynomial-2'
+    # BasisFunctionsType = 'Polynomial-3'
+    # BasisFunctionsType = 'Polynomial-4'
+    # BasisFunctionsType = 'Polynomial-5'
+    # BasisFunctionsType = 'Polynomial-2-Trigonometric-1'
     X = Data.GenerateLinearModelBasisFunctions(x,y,BasisFunctionsType)
 
     # Trace estimation weights
@@ -55,7 +62,8 @@ def ComputeNoiseForSingleData():
     # EstimationMethod = 'RBFMethod'
 
     # Precompute trace interpolation function
-    TraceEstimationUtilities_1 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,4e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3])
+    ComputeAuxilliaryMethod = True
+    TraceEstimationUtilities_1 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,4e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3],ComputeAuxilliaryMethod)
     TraceEstimationUtilities_2 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,1e-3,1e-2,1e-1,1,1e+1,1e+3])
     TraceEstimationUtilities_3 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-3,1e-2,1e-1,1e+1,1e+3])
     TraceEstimationUtilities_4 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-3,1e-1,1e+1])

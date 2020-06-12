@@ -283,12 +283,16 @@ def PlotResults(AllResults):
     legend.texts[3].set_position((0,shift+Increment*2))
     legend.texts[4].set_position((0,shift+Increment*2))
 
+    # Save plots
     plt.tight_layout()
-
     SaveDir = './doc/images/'
-    SaveFullname = SaveDir + 'NoiseLevel.pdf'
-    plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-    print('Plot saved to %s.'%(SaveFullname))
+    SaveFilename = 'NoiseLevel'
+    SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
+    SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
+    plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight')
+    plt.savefig(SaveFilename_SVG,transparent=True,bbox_inches='tight')
+    print('Plot saved to %s.'%(SaveFilename_PDF))
+    print('Plot saved to %s.'%(SaveFilename_SVG))
     # plt.show()
 
 # ====
@@ -297,9 +301,14 @@ def PlotResults(AllResults):
 
 if __name__ == "__main__":
 
-    # Use existing results file or generate new data
-    UseSavedResults = False
+    # Setting
+    # UseSavedResults = False    # Computes new reuslts
+    UseSavedResults = True       # Plots previously generated data from pickle file
+
+    # Reuslts filename
     ResultsFilename = './doc/data/NoiseLevelResults.pickle'
+
+    # Compute or plot
     if UseSavedResults:
  
         # Load file

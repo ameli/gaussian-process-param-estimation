@@ -845,9 +845,10 @@ class LikelihoodEstimation():
         ax1.set_xlim([eta[0],eta[-1]])
         ax1.set_xlabel(r'$\eta$')
         ax1.set_ylabel(r'$\mathrm{d} L_{\hat{\sigma}^2(\eta)}(\eta)/\mathrm{d} \eta$')
-        ax1.set_title('Derivative of Log-Likelihood function')
+        ax1.set_title('Derivative of Marginal Log-Likelihood function')
         ax1.grid(True)
         # ax1.legend(loc='upper left',frameon=False)
+        ax1.patch.set_facecolor('none')
 
         # Inset plot
         if PlotOptimal_eta:
@@ -883,10 +884,15 @@ class LikelihoodEstimation():
             # ax2.set_yticklabels(ax2.get_yticks(),backgroundcolor='w')
             # ax2.tick_params(axis='y',which='major',pad=0)
 
+        # Save plots
         # plt.tight_layout()
         SaveDir = './doc/images/'
-        SaveFullname = SaveDir + 'LogLikelihoodFirstDerivative.pdf'
+        SaveFilename = 'LogLikelihoodFirstDerivative'
+        SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
+        SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
         # plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-        plt.savefig(SaveFullname,bbox_inches='tight')
-        print('Plot saved to %s.'%(SaveFullname))
+        plt.savefig(SaveFilename_PDF,bbox_inches='tight')
+        plt.savefig(SaveFilename_SVG,bbox_inches='tight')
+        print('Plot saved to %s.'%(SaveFilename_PDF))
+        print('Plot saved to %s.'%(SaveFilename_SVG))
         # plt.show()

@@ -538,7 +538,7 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithP
     cbar = fig.colorbar(c,pad=0.025)
     if Clim is not None:
         c.set_clim(0,Clim)   # Used to plot data without prior
-    if PlotDataWithtPrior == False:
+    if PlotDataWithPrior == False:
         cbar.set_ticks([0,0.3,0.6,0.9,1])
     else:
         cbar.set_ticks([0,0.5,1,1.5,1.9])
@@ -601,11 +601,15 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithP
     # To reduce file size, rasterize contour fill plot
     plt.gca().set_rasterization_zorder(-1)
 
+    # Save plots
     plt.tight_layout()
-
-    plt.savefig(PlotFilename,transparent=True,bbox_inches='tight')
-    print('Plot saved to %s.'%(PlotFilename))
-
+    SaveDir = './doc/images/'
+    SaveFilename_PDF = SaveDir + PlotFilename + '.pdf'
+    SaveFilename_SVG = SaveDir + PlotFilename + '.svg'
+    plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight')
+    plt.savefig(SaveFilename_SVG,transparent=True,bbox_inches='tight')
+    print('Plot saved to %s.'%(SaveFilename_PDF))
+    print('Plot saved to %s.'%(SaveFilename_SVG))
     # plt.show()
 
 # ========================================
@@ -690,25 +694,34 @@ def ComputeLogLikelihoodVersusParameters(ResultsFilename):
 
 if __name__ == "__main__":
     """
-    When plotting, make sure to set CutData and Clim for each of with and without prior data cases.
+    Before runing this code, make sure in TraceEstimation.py, the ComputeTraceOfInverse() is set to
+    LanczosQuadrature with Golub-Kahn-Lanczos method.
     """
 
-    # Generic filesnames
-    # ResultsFilename = './doc/data/OptimalCovariance.pickle'
-    # PlotFilename = './doc/images/OptimalCovariance.pdf'
+    # Settings
+    PlotDataWithPrior = False     # Plots data without prior
+    # PlotDataWithPrior = True        # Plots data with prior
 
-    # Without prior
-    # PlotDataWithPrior = False
-    # ResultsFilename = './doc/data/OptimalCovariance_WithoutPrior.pickle'
-    # PlotFilename = './doc/images/OptimalCovariance_WithoutPrior.pdf'
+    # UseSavedResults = False       # Computes new results
+    UseSavedResults = True          # Plots previously computed data from pickle files
 
-    # With prior
-    PlotDataWithPrior = True
-    ResultsFilename = './doc/data/OptimalCovariance_WithPrior.pickle'
-    PlotFilename = './doc/images/OptimalCovariance_WithPrior.pdf'
+    # ComputePlotData = True        # If UseSavedResults is False, this computes the data of the plot
+    ComputePlotData = False         # If UseSavedResults is False, this computes optimal parameters
 
-    UseSavedResults = True  # SETTING
+    # Filenames
+    if PlotDataWithPrior:
 
+        # With prior
+        ResultsFilename = './doc/data/OptimalCovariance_WithPrior.pickle'
+        PlotFilename = 'OptimalCovariance_WithPrior'
+
+    else:
+
+        # Without prior
+        ResultsFilename = './doc/data/OptimalCovariance_WithoutPrior.pickle'
+        PlotFilename = 'OptimalCovariance_WithoutPrior'
+
+    # Compute or plot
     if UseSavedResults:
         
         # Plot previously generated data
@@ -716,11 +729,13 @@ if __name__ == "__main__":
 
     else:
 
-        # Choose either of the followings
+        if ComputePlotData:
 
-        # 1. Generate new data for plot (may take long time)
-        # ComputeLogLikelihoodVersusParameters(ResultsFilename)
-        # PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
+            # Generate new data for plot (may take long time)
+            ComputeLogLikelihoodVersusParameters(ResultsFilename)
+            PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
 
-        # 2. Find optimal parameters (may take long time)
-        FindOptimalCovarianceParameters(ResultsFilename)
+        else:
+
+            # Find optimal parameters (may take long time)
+            FindOptimalCovarianceParameters(ResultsFilename)

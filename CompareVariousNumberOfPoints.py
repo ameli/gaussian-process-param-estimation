@@ -373,6 +373,10 @@ def SnapToPower2(Dictionary,NumPointsPowers):
     will be also adjusted by linear interpolation.
     """
 
+    # Check if dictionary is empty
+    if bool(Dictionary) == False:
+        return {}
+
     # Data on x axis
     x = Dictionary['NumPoints']
     y1 = Dictionary['ElapsedTime_Interpolation']
@@ -578,10 +582,18 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
 
     plt.tight_layout()
 
+    # Save plots
     SaveDir = './doc/images/'
-    SaveFullname = SaveDir + 'ElapsedTime.pdf'
-    plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-    print('Plot saved to %s.'%(SaveFullname))
+    if UseSparse:
+        SaveFilename = 'ElapsedTime-Sparse'
+    else:
+        SaveFilename = 'ElapsedTime-Dense'
+    SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
+    SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
+    plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight')
+    plt.savefig(SaveFilename_SVG,transparent=True,bbox_inches='tight')
+    print('Plot saved to %s.'%(SaveFilename_PDF))
+    print('Plot saved to %s.'%(SaveFilename_SVG))
     # plt.show()
 
 # ====
@@ -590,26 +602,36 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
 
 if __name__ == "__main__":
 
-    # UseSparse = True
-    UseSparse = False
+    # Settings
+    UseSparse = True
+    # UseSparse = False
     
-    # UseSavedResults = False
-    UseSavedResults = True
-    
-    if UseSavedResults:
+    # UseSavedResults = False    # Computes new results
+    UseSavedResults = True       # Plots previously computed data from pickle file
 
-        # Plot previously generated results (perhaps, multiple results)
-        MultipleResultsFilenames = [
-                './doc/data/VariousNumberOfPoints-dense.pickle']
-                # './doc/data/VariousNumberOfPoints-sparse.pickle']
+    # Filenames
+    if UseSparse:
+        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-sparse.pickle']
+        ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
+
+    else:
+        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-sparse.pickle']
+        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
+
+        # Averaging over multiple results files
+        # MultipleResultsFilenames = [ \
+                # './doc/data/VariousNumberOfPoints_1.pickle',
                 # './doc/data/VariousNumberOfPoints_2.pickle',
                 # './doc/data/VariousNumberOfPoints_3.pickle',
                 # './doc/data/VariousNumberOfPoints_4.pickle']
+   
+    # Compute or plot
+    if UseSavedResults:
+
+        # Plot previously generated results (perhaps, multiple results)
         PlotResults(MultipleResultsFilenames,UseSparse)
 
     else:
 
         # Generate new data
-        # ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
-        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
         CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSparse)

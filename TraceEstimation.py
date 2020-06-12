@@ -245,7 +245,8 @@ class TraceEstimation():
             UseEigenvaluesMethod,
             EstimationMethod, \
             FunctionType, \
-            InterpolantPoints):
+            InterpolantPoints,
+            ComputeAuxilliaryMethod=False):
         """
         Computes T0 and w.
         """
@@ -494,21 +495,24 @@ class TraceEstimation():
             raise ValueError('Method is invalid.')
 
         # Interpolant points for the auxilliary estimation method
-        # eta1 = 0.1    # SETTING
-        # if UseSparse:
-        #     I = scipy.sparse.eye(n,format='csc')
-        # else:
-        #     I = numpy.eye(n)
-        # Kn = K + eta1*I
-        # T1 = TraceEstimation.ComputeTraceOfInverse(Kn)
-        # AuxilliaryEstimationMethodUtilities = \
-        # {
-        #     'eta1': eta1,
-        #     'T1': T1,
-        #     'T0': T0,
-        #     'n': n,
-        #     'p': p
-        # }
+        eta1 = 0.1    # SETTING
+        if UseSparse:
+            I = scipy.sparse.eye(n,format='csc')
+        else:
+            I = numpy.eye(n)
+        Kn = K + eta1*I
+        if ComputeAuxilliaryMethod:
+            T1 = TraceEstimation.ComputeTraceOfInverse(Kn)
+        else:
+            T1 = None
+        AuxilliaryEstimationMethodUtilities = \
+        {
+            'eta1': eta1,
+            'T1': T1,
+            'T0': T0,
+            'n': n,
+            'p': p
+        }
 
         # Output
         TraceEstimationUtilities = \
@@ -831,6 +835,7 @@ class TraceEstimation():
         ax2.xaxis.set_minor_formatter(NullFormatter())
         ax2.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         ax2.set_facecolor(InsetColor)
+        plt.setp(ax2.get_yticklabels(),backgroundcolor='white')
 
         # ax2.ticklabel_format(axis='y',style='sci',scilimits=(0,0))
         # ax2.grid(True,axis='y')
@@ -857,11 +862,16 @@ class TraceEstimation():
 
         ax[1].yaxis.set_major_formatter(PercentFormatter(decimals=0))
 
+        # Save plots
         plt.tight_layout()
         SaveDir = './doc/images/'
-        SaveFullname = SaveDir + 'EstimateTrace.pdf'
+        SaveFilename = 'EstimateTrace'
+        SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
+        SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
         # plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
-        print('Plot saved to %s.'%(SaveFullname))
-        plt.savefig(SaveFullname,bbox_inches='tight')
+        plt.savefig(SaveFilename_PDF,bbox_inches='tight')
+        plt.savefig(SaveFilename_SVG,bbox_inches='tight')
+        print('Plot saved to %s.'%(SaveFilename_PDF))
+        print('Plot saved to %s.'%(SaveFilename_SVG))
 
         # plt.show()
