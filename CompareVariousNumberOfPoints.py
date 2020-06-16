@@ -157,7 +157,7 @@ def MaximizeLikelihoodWithDirectMethod(NumPoints,UseSparse,DecorrelationScale,Us
                 K_eigenvalues[:NumNoneZeroEig] = scipy.sparse.linalg.eigsh(K,NumNoneZeroEig,which='LM',tol=1e-3,return_eigenvectors=False)
 
             else:
-                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)[0]
+                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)
             EigenvaluesMethodUtilities = \
             {
                 'K_eigenvalues': K_eigenvalues
@@ -251,8 +251,10 @@ def CompareComputationWithVariousNumberOfPoints(ResultsFilename,UseSparse):
 
         # Settings for dense matrix
         DecorrelationScale = 0.1    # for dense matrix
-        NumPointsPowers = numpy.arange(9,12.1,0.5)    # For derivative method
-        NumPointsPowers2 = numpy.arange(9,12.1,0.5)   # For direct method
+        # NumPointsPowers = numpy.arange(9,12.1,0.5)    # For derivative method
+        # NumPointsPowers2 = numpy.arange(9,12.1,0.5)   # For direct method
+        NumPointsPowers = numpy.arange(6,13.1,0.5)    # For derivative method
+        NumPointsPowers2 = numpy.arange(6,13.1,0.5)   # For direct method
 
     # Number of points
     NumPoints = numpy.rint(numpy.sqrt(2**NumPointsPowers)).astype(int)
@@ -602,21 +604,23 @@ def PlotResults(MultipleResultsFilenames,UseSparse):
 
 if __name__ == "__main__":
 
+    UseSavedResults = False    # Computes new results
+    # UseSavedResults = True       # Plots previously computed data from pickle file
+
     # Settings
-    UseSparse = True
-    # UseSparse = False
-    
-    # UseSavedResults = False    # Computes new results
-    UseSavedResults = True       # Plots previously computed data from pickle file
+    # UseSparse = True    # Uses sparse matrices
+    UseSparse = False     # Uses dense matrices
 
     # Filenames
     if UseSparse:
-        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-sparse.pickle']
-        ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'
+        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-sparse.pickle']  # Input files for plots
+        ResultsFilename = './doc/data/VariousNumberOfPoints-sparse.pickle'             # Output file for saving results
 
     else:
-        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-sparse.pickle']
-        ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'
+        # MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-dense.pickle']   # Input files for plots
+        # ResultsFilename = './doc/data/VariousNumberOfPoints-dense.pickle'              # Output file for saving results
+        MultipleResultsFilenames = ['./doc/data/VariousNumberOfPoints-dense-test.pickle']   # Input files for plots
+        ResultsFilename = './doc/data/VariousNumberOfPoints-dense-test.pickle'              # Output file for saving results
 
         # Averaging over multiple results files
         # MultipleResultsFilenames = [ \

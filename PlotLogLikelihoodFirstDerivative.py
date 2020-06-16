@@ -56,49 +56,30 @@ def ComputeNoiseForSingleData():
 
     # Trace estimation weights
     UseEigenvaluesMethod = False    # If set to True, it overrides the interpolation estimation methods
-    # EstimationMethod = 'NonOrthogonalFunctionsMethod'   # highest condtion number
-    # EstimationMethod = 'OrthogonalFunctionsMethod'      # still high condition number
-    EstimationMethod = 'OrthogonalFunctionsMethod2'     # best (lowest) condition number
-    # EstimationMethod = 'RBFMethod'
+    # TraceEstimationMethod = 'NonOrthogonalFunctionsMethod'   # highest condtion number
+    # TraceEstimationMethod = 'OrthogonalFunctionsMethod'      # still high condition number
+    TraceEstimationMethod = 'OrthogonalFunctionsMethod2'     # best (lowest) condition number
+    # TraceEstimationMethod = 'RBFMethod'
 
     # Precompute trace interpolation function
-    ComputeAuxilliaryMethod = True
-    TraceEstimationUtilities_1 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,4e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3],ComputeAuxilliaryMethod)
-    TraceEstimationUtilities_2 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-4,1e-3,1e-2,1e-1,1,1e+1,1e+3])
-    TraceEstimationUtilities_3 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-3,1e-2,1e-1,1e+1,1e+3])
-    TraceEstimationUtilities_4 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-3,1e-1,1e+1])
-    TraceEstimationUtilities_5 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'OrthogonalFunctionsMethod2',None,[1e-1])
-
-    # TraceEstimationUtilities_6 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'RBFMethod',1,[1e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3])
-    # TraceEstimationUtilities_7 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'RBFMethod',2,[1e-2,1e-1,1,1e+1,1e+2])
-    # TraceEstimationUtilities_8 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,'RBFMethod',3,[1e-2,1e-1,1,1e+1,1e+2])
-
-    TraceEstimationUtilitiesList = [ \
-            TraceEstimationUtilities_1,
-            TraceEstimationUtilities_2,
-            TraceEstimationUtilities_3,
-            TraceEstimationUtilities_4,
-            TraceEstimationUtilities_5]
+    TraceEstimationUtilities = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,TraceEstimationMethod,None,[1e-4,4e-4,1e-3,1e-2,1e-1,1,1e+1,1e+2,1e+3])
 
     # Finding optimal parameters with maximum likelihood using parameters (sigma,sigma0)
-    # Results = LikelihoodEstimation.MaximizeLogLikelihoodWithSigmaSigma0(z,X,K,TraceEstimationUtilities_1)
+    # Results = LikelihoodEstimation.MaximizeLogLikelihoodWithSigmaSigma0(z,X,K,TraceEstimationUtilities)
     # print(Results)
 
     # Finding optimal parameters with maximum likelihood using parameters (sigma,eta)
-    # Results = LikelihoodEstimation.MaximizeLogLikelihoodWithSigmaEta(z,X,K,TraceEstimationUtilities_1)
+    # Results = LikelihoodEstimation.MaximizeLogLikelihoodWithSigmaEta(z,X,K,TraceEstimationUtilities)
     # print(Results)
 
     # Finding optimal parameters with derivative of likelihood
     Interval_eta = [1e-4,1e+3]   # Note: make sure the interval is exactly the end points of eta_i, not less or more.
-    Results = LikelihoodEstimation.FindZeroOfLogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities_1,Interval_eta)
+    Results = LikelihoodEstimation.FindZeroOfLogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities,Interval_eta)
     print(Results)
 
     # Plot likelihood and its derivative
-    # LikelihoodEstimation.PlotLogLikelihood(z,X,K,TraceEstimationUtilities_1)
-    LikelihoodEstimation.PlotLogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities_1,Results['eta'])
-
-    # Plot Trace Estimate
-    TraceEstimation.PlotTraceEstimate(TraceEstimationUtilitiesList,K)
+    # LikelihoodEstimation.PlotLogLikelihood(z,X,K,TraceEstimationUtilities)
+    LikelihoodEstimation.PlotLogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities,Results['eta'])
 
 # ====
 # Main

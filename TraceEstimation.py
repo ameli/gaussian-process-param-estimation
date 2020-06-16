@@ -5,6 +5,7 @@
 import sys
 import numpy
 import scipy
+from scipy import optimize
 from scipy import linalg
 from scipy import sparse
 from scipy.sparse import linalg
@@ -265,6 +266,7 @@ class TraceEstimation():
         OrthogonalFunctionsMethodUtilities2 = {}
         RBFMethodUtilities = {}
         AuxilliaryEstimationMethodUtilities = {}
+        RationalPolynomialMethodUtilities = {}
 
         # For large matrices, do not use eigenvalues method
         if UseEigenvaluesMethod == True:
@@ -280,7 +282,7 @@ class TraceEstimation():
                 K_eigenvalues[:NumNoneZeroEig] = scipy.sparse.linalg.eigsh(K,NumNoneZeroEig,which='LM',tol=1e-3,return_eigenvectors=False)
 
             else:
-                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)[0]
+                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)
             EigenvaluesMethodUtilities = \
             {
                 'K_eigenvalues': K_eigenvalues
@@ -491,6 +493,69 @@ class TraceEstimation():
                 'FunctionType': FunctionType
             }
 
+        elif EstimationMethod == 'RationalPolynomialMethod':
+
+            def RationalPoly(x,Numerator,Denominator):
+                return numpy.polyval(Numerator,x) / numpy.polyval(Denominator,x)
+
+            # Rational Polynomial order 4/5, Order = 5
+            def RationalPoly45(x,a3,a2,a1,b4,b3,b2,b1,b0):
+                Numerator = [1,a3,a2,a1,b0*T0]
+                Denominator = [1,b4,b3,b2,b1,b0]
+                return RationalPoly(x,Numerator,Denominator)
+
+            # Rational Polynomial order 3/4, Order = 4
+            def RationalPoly34(x,a2,a1,b3,b2,b1,b0):
+                Numerator = [1,a2,a1,b0*T0]
+                Denominator = [1,b3,b2,b1,b0]
+                return RationalPoly(x,Numerator,Denominator)
+
+            # Rational Polynomial order 2/3, Order = 3
+            def RationalPoly23(x,a1,b2,b1,b0):
+                Numerator = [1,a1,b0*T0]
+                Denominator = [1,b2,b1,b0]
+                return RationalPoly(x,Numerator,Denominator)
+
+            # Rational Polynomial order 1/2, Order = 2
+            def RationalPoly12(x,b1,b0):
+                Numerator = [1,b0*T0]
+                Denominator = [1,b1,b0]
+                return RationalPoly(x,Numerator,Denominator)
+
+            # Set the order based on the number of points.
+            Order = 1 + int(p//2)
+            if Order == 1:
+                raise ValueError('Order musr be larger than 1.')
+            if Order == 2:
+                Function = RationalPoly12
+            elif Order == 3:
+                Function = RationalPoly23
+            elif Order == 4:
+                Function = RationalPoly34
+            elif Order == 5:
+                Function = RationalPoly45
+            else:
+                raise ValueError('RationalPolynomial order is invalid.')
+
+            popt,pcov = scipy.optimize.curve_fit(Function,eta_i,trace_eta_i)
+            # Numerator = [1,popt[0],popt[1],popt[2],popt[-1]*T0]
+            Numerator = [1] + popt[:Order-2].tolist() + [popt[-1]*T0]
+            # Denominator = [1,popt[3],popt[4],popt[5],popt[6],popt[7]]
+            Denominator = [1] + popt[Order-2:].tolist()
+            print('Numerator:')
+            print(Numerator)
+            print('Denominator:')
+            print(Denominator)
+
+            RationalPolynomialMethodUtilities = \
+            {
+                'n': n,
+                'p': p,
+                'T0': T0,
+                'Numerator': Numerator,
+                'Denominator': Denominator
+            }
+
         else:
             raise ValueError('Method is invalid.')
 
@@ -524,7 +589,8 @@ class TraceEstimation():
             'OrthogonalFunctionsMethodUtilities': OrthogonalFunctionsMethodUtilities,
             'OrthogonalFunctionsMethodUtilities2': OrthogonalFunctionsMethodUtilities2,
             'RBFMethodUtilities': RBFMethodUtilities,
-            'AuxilliaryEstimationMethodUtilities': AuxilliaryEstimationMethodUtilities
+            'AuxilliaryEstimationMethodUtilities': AuxilliaryEstimationMethodUtilities,
+            'RationalPolynomialMethodUtilities': RationalPolynomialMethodUtilities
         }
 
         return TraceEstimationUtilities
@@ -719,6 +785,19 @@ class TraceEstimation():
             
             return T
 
+        elif EstimationMethod == 'RationalPolynomialMethod':
+
+            def RationalPoly(x,Numerator,Denominator):
+                return numpy.polyval(Numerator,x) / numpy.polyval(Denominator,x)
+
+            n = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['n']
+            Numerator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Numerator']
+            Denominator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Denominator']
+
+            T = RationalPoly(eta,Numerator,Denominator)
+
+            return T
+
         else:
             raise ValueError('Method is invalid.')
 
@@ -868,7 +947,7 @@ class TraceEstimation():
         SaveFilename = 'EstimateTrace'
         SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
         SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
-        # plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
+        # plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight')
         plt.savefig(SaveFilename_PDF,bbox_inches='tight')
         plt.savefig(SaveFilename_SVG,bbox_inches='tight')
         print('Plot saved to %s.'%(SaveFilename_PDF))

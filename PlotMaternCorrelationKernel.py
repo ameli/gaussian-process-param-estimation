@@ -69,8 +69,10 @@ if __name__ == "__main__":
     if PlotErrors == False:
         ax = [ax] # to use ax[0]
 
+    # Set nu
     Nu = [0.1,0.5,1.0,3.2,25]
     NuLabels = ['0.1','0.5','1.0','3.2','25']
+
     Colors = sns.color_palette("OrRd_d",len(Nu))[::-1]
     x = numpy.linspace(0,4,1000)
 

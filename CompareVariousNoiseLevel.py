@@ -98,7 +98,7 @@ def ComputeSigmaSigma0EtaPerProcess(NoiseMagnitudes,BasisFunctionsTypes,j,i):
                 K_eigenvalues[:NumNoneZeroEig] = scipy.sparse.linalg.eigsh(K,NumNoneZeroEig,which='LM',tol=1e-3,return_eigenvectors=False)
 
             else:
-                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)[0]
+                K_eigenvalues = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False)
             EigenvaluesMethodUtilities = \
             {
                 'K_eigenvalues': K_eigenvalues

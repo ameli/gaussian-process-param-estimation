@@ -890,7 +890,7 @@ class LikelihoodEstimation():
         SaveFilename = 'LogLikelihoodFirstDerivative'
         SaveFilename_PDF = SaveDir + SaveFilename + '.pdf'
         SaveFilename_SVG = SaveDir + SaveFilename + '.svg'
-        # plt.savefig(SaveFullname,transparent=True,bbox_inches='tight')
+        # plt.savefig(SaveFilename_PDF,transparent=True,bbox_inches='tight')
         plt.savefig(SaveFilename_PDF,bbox_inches='tight')
         plt.savefig(SaveFilename_SVG,bbox_inches='tight')
         print('Plot saved to %s.'%(SaveFilename_PDF))
