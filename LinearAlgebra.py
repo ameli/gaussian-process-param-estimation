@@ -203,7 +203,10 @@ def GolubKahnLanczosBidiagonalization(A,w,m):
         # Exit criterion
         if beta[k+1] < Tolerance:
             if k == 0:
-                raise ValueError('Premature exit at k = 0. beta[0:2] = %0.16f, %0.16f. This happens when A is close to identity. To resolve issue, decrease Tolerance: %f'%(beta[0],beta[1],Tolerance))
+                # raise ValueError('Premature exit at k = 0. beta[0:2] = %0.16f, %0.16f. This happens when A is close to identity. To resolve issue, decrease Tolerance: %f'%(beta[0],beta[1],Tolerance))
+                print('Premature exit in Golub-Kahn-Lanczos bi-diagonalization. alpha: %e, beta: %e'%(alpha[0],beta[1]))
+                B = numpy.array([[alpha[0]]])
+                return B
             return B[:k,:k]
 
         v_new = v_new / beta[k+1]

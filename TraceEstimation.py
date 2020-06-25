@@ -74,7 +74,8 @@ class TraceEstimation():
             """
 
             # Matrix size limit to switch direct to indirect algorthm
-            UseInverseMatrix = True  # SETTING
+            UseInverseMatrix = False  # SETTING
+            # UseInverseMatrix = True  # SETTING
 
             # Determine to use Sparse
             UseSparse = False
@@ -190,8 +191,10 @@ class TraceEstimation():
             """
            
             # Number of iterations and number of Lanczos steps in each iteration
-            NumIterations = 20   # SETTING
-            LanczosDegree = 20   # SETTING
+            # NumIterations = 20   # SETTING
+            # LanczosDegree = 20   # SETTING
+            NumIterations = 50   # SETTING
+            LanczosDegree = 50   # SETTING
             UseLanczosTridiagonalization = False  # SETTING
 
             n = A.shape[0]
@@ -230,9 +233,9 @@ class TraceEstimation():
 
         # --------------
 
-        Trace = CholeksyMethod(A)
+        # Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        # Trace = StochasticLanczosQuadratureMethod(A)
+        Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 
@@ -307,8 +310,9 @@ class TraceEstimation():
 
         # Scale eta, if some of eta_i are greater than 1
         Scale_eta = 1.0
-        if numpy.max(eta_i) > 1.0:
-            Scale_eta = numpy.max(eta_i)
+        if eta_i.size > 0:
+            if numpy.max(eta_i) > 1.0:
+                Scale_eta = numpy.max(eta_i)
 
         # Method 1: Use non-orthogonal basis functions
         if EstimationMethod == 'NonOrthogonalFunctionsMethod':
@@ -391,9 +395,13 @@ class TraceEstimation():
 
             # Solve weights
             w = numpy.linalg.solve(A,b)
+            # Lambda = 1e1   # Regularization parameter  # SETTING
+            # A2 = A.T.dot(A) + Lambda * numpy.eye(A.shape[0])
+            # b2 = A.T.dot(b)
+            # w = numpy.linalg.solve(A2,b2)
 
             # Test
-            # print('Condition number: %f'%(numpy.linalg.cond(A)))
+            print('Condition number: %f'%(numpy.linalg.cond(A)))
 
             # Results as dictionary
             OrthogonalFunctionsMethodUtilities2 = \
@@ -495,53 +503,109 @@ class TraceEstimation():
 
         elif EstimationMethod == 'RationalPolynomialMethod':
 
-            def RationalPoly(x,Numerator,Denominator):
-                return numpy.polyval(Numerator,x) / numpy.polyval(Denominator,x)
+            tau0 = T0/n
+            tau_i = trace_eta_i / n
 
-            # Rational Polynomial order 4/5, Order = 5
-            def RationalPoly45(x,a3,a2,a1,b4,b3,b2,b1,b0):
-                Numerator = [1,a3,a2,a1,b0*T0]
-                Denominator = [1,b4,b3,b2,b1,b0]
-                return RationalPoly(x,Numerator,Denominator)
+            # ----------------
+            # Rational Poly 12
+            # ----------------
 
-            # Rational Polynomial order 3/4, Order = 4
-            def RationalPoly34(x,a2,a1,b3,b2,b1,b0):
-                Numerator = [1,a2,a1,b0*T0]
-                Denominator = [1,b3,b2,b1,b0]
-                return RationalPoly(x,Numerator,Denominator)
+            def RationalPoly12(eta_i,tau_i,tau0):
+                """
+                Rational polynomial of order 1 over 2
+                """
 
-            # Rational Polynomial order 2/3, Order = 3
-            def RationalPoly23(x,a1,b2,b1,b0):
-                Numerator = [1,a1,b0*T0]
-                Denominator = [1,b2,b1,b0]
-                return RationalPoly(x,Numerator,Denominator)
+                # Matrix of coefficients
+                A = numpy.array([
+                    [eta_i[0],1-tau0/tau_i[0]],
+                    [eta_i[1],1-tau0/tau_i[1]]])
 
-            # Rational Polynomial order 1/2, Order = 2
-            def RationalPoly12(x,b1,b0):
-                Numerator = [1,b0*T0]
+                # Vector of right hand side
+                c = numpy.array([
+                    eta_i[0]/tau_i[0]-eta_i[0]**2,
+                    eta_i[1]/tau_i[1]-eta_i[1]**2])
+
+                # Condition number
+                print('Condition number: %0.2e'%(numpy.linalg.cond(A)))
+
+                # Solve with least square. NOTE: do not solve with numpy.linalg.solve directly.
+                b = numpy.linalg.solve(A,c)
+                b0 = b[1]
+                b1 = b[0]
+                a0 = b0*tau0
+
+                # Output
+                Numerator = [1,a0]
                 Denominator = [1,b1,b0]
-                return RationalPoly(x,Numerator,Denominator)
 
-            # Set the order based on the number of points.
-            Order = 1 + int(p//2)
-            if Order == 1:
-                raise ValueError('Order musr be larger than 1.')
-            if Order == 2:
-                Function = RationalPoly12
-            elif Order == 3:
-                Function = RationalPoly23
-            elif Order == 4:
-                Function = RationalPoly34
-            elif Order == 5:
-                Function = RationalPoly45
+                # Check poles
+                Poles = numpy.roots(Denominator)
+                if numpy.any(Poles > 0):
+                    print('Denominator poles:')
+                    print(Poles)
+                    raise ValueError('RationalPolynomial has positive poles.')
+
+                return Numerator,Denominator
+
+            # ----------------
+            # Rational Poly 23
+            # ----------------
+
+            def RationalPoly23(eta_i,tau_i,tau0):
+                """
+                Rational polynomial of order 2 over 3
+                """
+
+                # Matrix of coefficients
+                A = numpy.array([
+                    [eta_i[0]**2,eta_i[0],1-tau0/tau_i[0],-eta_i[0]/tau_i[0]],
+                    [eta_i[1]**2,eta_i[1],1-tau0/tau_i[1],-eta_i[1]/tau_i[1]],
+                    [eta_i[2]**2,eta_i[2],1-tau0/tau_i[2],-eta_i[2]/tau_i[2]],
+                    [eta_i[3]**2,eta_i[3],1-tau0/tau_i[3],-eta_i[3]/tau_i[3]]])
+
+                # Vector of right hand side
+                c = numpy.array([
+                    eta_i[0]**2/tau_i[0]-eta_i[0]**3,
+                    eta_i[1]**2/tau_i[1]-eta_i[1]**3,
+                    eta_i[2]**2/tau_i[2]-eta_i[2]**3,
+                    eta_i[3]**2/tau_i[3]-eta_i[3]**3])
+
+                # Condition number
+                print('Condition number: %0.2e'%(numpy.linalg.cond(A)))
+
+                # Solve with least square. NOTE: do not solve with numpy.linalg.solve directly.
+                b = numpy.linalg.solve(A,c)
+                b2 = b[0]
+                b1 = b[1]
+                b0 = b[2]
+                a1 = b[3]
+                a0 = b0*tau0
+
+                # Output
+                Numerator = [1,a1,a0]
+                Denominator = [1,b2,b1,b0]
+
+                # Check poles
+                Poles = numpy.roots(Denominator)
+                if numpy.any(Poles > 0):
+                    print('Denominator poles:')
+                    print(Poles)
+                    raise ValueError('RationalPolynomial has positive poles.')
+
+                return Numerator,Denominator
+
+            # ------------------
+
+            # Coefficients of a linear system
+            if p == 2:
+                Numerator,Denominator = RationalPoly12(eta_i,tau_i,tau0)
+
+            elif p == 4:
+                Numerator,Denominator = RationalPoly23(eta_i,tau_i,tau0)
+
             else:
-                raise ValueError('RationalPolynomial order is invalid.')
+                raise ValueError('In RationalPolynomial method, the number of interpolant points, p, should be 2 or 4.')
 
-            popt,pcov = scipy.optimize.curve_fit(Function,eta_i,trace_eta_i)
-            # Numerator = [1,popt[0],popt[1],popt[2],popt[-1]*T0]
-            Numerator = [1] + popt[:Order-2].tolist() + [popt[-1]*T0]
-            # Denominator = [1,popt[3],popt[4],popt[5],popt[6],popt[7]]
-            Denominator = [1] + popt[Order-2:].tolist()
             print('Numerator:')
             print(Numerator)
             print('Denominator:')
@@ -786,15 +850,17 @@ class TraceEstimation():
             return T
 
         elif EstimationMethod == 'RationalPolynomialMethod':
+            
+            n = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['n']
+            T0 = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['T0']
+            Numerator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Numerator']
+            Denominator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Denominator']
 
             def RationalPoly(x,Numerator,Denominator):
                 return numpy.polyval(Numerator,x) / numpy.polyval(Denominator,x)
 
-            n = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['n']
-            Numerator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Numerator']
-            Denominator = TraceEstimationUtilities['RationalPolynomialMethodUtilities']['Denominator']
-
-            T = RationalPoly(eta,Numerator,Denominator)
+            tau = RationalPoly(eta,Numerator,Denominator)
+            T = tau*n
 
             return T
 
@@ -810,6 +876,10 @@ class TraceEstimation():
         """
         Plots the curve of trace of Kn inverse versus eta.
         """
+
+        # If not a list, embed the object into a list
+        if not isinstance(TraceEstimationUtilitiesList,list):
+            TraceEstimationUtilitiesList = [TraceEstimationUtilitiesList]
 
         # Determine to use sparse
         UseSparse = False
@@ -873,7 +943,7 @@ class TraceEstimation():
 
         for j in reversed(range(NumberOfEstimates)):
             p = TraceEstimationUtilitiesList[j]['AuxilliaryEstimationMethodUtilities']['p']
-            q = ax[0].loglog(eta,tau_estimate[j,:],label=r'Estimation, $p=%d$'%(p),color=ColorsList[j])
+            q = ax[0].loglog(eta,tau_estimate[j,:],label=r'Interpolation, $p=%d$'%(p),color=ColorsList[j])
             if j == 0:
                 q[0].set_zorder(20)
 
@@ -883,11 +953,10 @@ class TraceEstimation():
         ax[0].set_ylim([1e-3,1e1])
         ax[0].set_xlabel(r'$\eta$')
         ax[0].set_ylabel(r'$\tau(\eta)$')
-        ax[0].set_title(r'(a) Comparison of exact, estimate and bounds of $\tau(\eta)$')
+        ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(\eta)$')
         ax[0].grid(True)
         ax[0].legend(fontsize='x-small',loc='upper right')
 
-        # Inset plot
         # Inset plot
         ax2 = plt.axes([0,0,1,1])
         # Manually set the position and relative size of the inset axes within ax1
@@ -925,7 +994,7 @@ class TraceEstimation():
         for j in reversed(range(NumberOfEstimates)):
             p = TraceEstimationUtilitiesList[j]['AuxilliaryEstimationMethodUtilities']['p']
             # q = ax[1].semilogx(eta,tau_estimate[j,:]-tau_exact,label=r'Estimation, $p=%d$'%(p),color=ColorsList[j])  # Absolute error
-            q = ax[1].semilogx(eta,100*(tau_estimate[j,:]/tau_exact-1),label=r'Estimaton, p=%d'%(p),color=ColorsList[j])       # Relative error
+            q = ax[1].semilogx(eta,100*(tau_estimate[j,:]/tau_exact-1),label=r'Interpolation, $p=%d$'%(p),color=ColorsList[j])       # Relative error
             if j == 0:
                 q[0].set_zorder(20)
         # ax[1].semilogx(eta,tau_estimate_alt-tau_exact,label=r'Alt. estimation',zorder=-20)   # Absolute error
@@ -935,7 +1004,7 @@ class TraceEstimation():
         ax[1].set_ylim([-3,12])
         ax[1].set_xlabel(r'$\eta$')
         ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(\eta)/\tau_{\mathrm{exact}}(\eta) - 1$')
-        ax[1].set_title(r'(b) Relative error of estimation of $\tau(\eta)$')
+        ax[1].set_title(r'(b) Relative error of interpolation of $\tau(\eta)$')
         ax[1].grid(True)
         ax[1].legend(fontsize='x-small')
 

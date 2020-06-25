@@ -7,6 +7,7 @@ import matplotlib
 from matplotlib.ticker import PercentFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes,InsetPosition,mark_inset
+import matplotlib.ticker
 from matplotlib.ticker import ScalarFormatter,NullFormatter,FormatStrFormatter
 import matplotlib.pyplot as plt
 

@@ -333,7 +333,7 @@ def FindOptimalCovarianceParameters(ResultsFilename):
         # Global optimization methods (use for direct method)
         numpy.random.seed(31)   # for repeatability of results
         Res = scipy.optimize.differential_evolution(LogLikelihood_PartialFunction,Bounds,workers=-1,tol=Tolerance,atol=Tolerance,
-                updating='deferred',polish=True,strategy='best1bin',popsize=100,maxiter=200) # Works well
+                updating='deferred',polish=True,strategy='best1bin',popsize=50,maxiter=200) # Works well
         # Res = scipy.optimize.dual_annealing(LogLikelihood_PartialFunction,Bounds,maxiter=500)
         # Res = scipy.optimize.shgo(LogLikelihood_PartialFunction,Bounds,
         #         options={'minimize_every_iter': True,'local_iter': True,'minimizer_kwargs':{'method': 'Nelder-Mead'}})
