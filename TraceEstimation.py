@@ -191,10 +191,10 @@ class TraceEstimation():
             """
            
             # Number of iterations and number of Lanczos steps in each iteration
-            # NumIterations = 20   # SETTING
-            # LanczosDegree = 20   # SETTING
-            NumIterations = 50   # SETTING
-            LanczosDegree = 50   # SETTING
+            NumIterations = 20   # SETTING
+            LanczosDegree = 20   # SETTING
+            # NumIterations = 30   # SETTING
+            # LanczosDegree = 30   # SETTING
             UseLanczosTridiagonalization = False  # SETTING
 
             n = A.shape[0]
@@ -233,9 +233,9 @@ class TraceEstimation():
 
         # --------------
 
-        # Trace = CholeksyMethod(A)
+        Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        Trace = StochasticLanczosQuadratureMethod(A)
+        # Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 

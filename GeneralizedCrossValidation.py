@@ -16,6 +16,16 @@ Notes:
 
       To plot GCV and trace estimations, compute trace with Cholesky, and WITH matrix
       inverse. That is, in EstimateTrace.py, set UseInverseMatrix=True.
+
+      NOTE:
+      If you want to measure the elased time of minimizing GCV, do the followings:
+
+      1. in the DIfferential Evolution method, set worker=1 (NOT -1).
+      2. In the import os, uncomment all the os.environ(...) variables.
+
+      Otherwise, all measured elapsed times will be wrong due to the parallel processing.
+      The only way that seems to measure elased time of multicore process properly is to 
+      restrict python to use multi-cores.
 """
 
 # =======
@@ -28,10 +38,19 @@ from scipy import sparse
 from scipy import optimize
 from functools import partial
 import time
+import pickle
 
 # Classes
 from TraceEstimation import TraceEstimation
 from PlotSettings import *
+
+# Uncomment lines below if measureing elapsed time. These will restrict python to only use one processing thread.
+# import os
+# os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+# os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+# os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+# os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+# os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 
 # =============
 # Generate Data
@@ -74,11 +93,34 @@ def GenerateData(n,m):
 
     return X,z
 
+# ============
+# Time Counter
+# ============
+
+class TimeCounterClass(object):
+    """
+    This class is used to measure the elapsed time of computing trace only for the
+    exact (non-interpolation) method.
+
+    In the interpolation method, the trace is "pre-computed" (in TraceEstimationUtilities), so we can easily find
+    how much time did it take to compute trace in the pre-computation.
+
+    However, in the direct method of minimizing GCV, we can only measue the total time of minimization process.
+    To measure only the elapsed time of computing trace (which is a part of computing GCV) we pass an object
+    of this class to accumulatively measure the elapsed time of a portion related to computing trace.
+    """
+    def __init__(self):
+        self.ElapsedTime = 0
+    def Add(self,Time):
+        self.ElapsedTime = self.ElapsedTime + Time
+    def Reset(self):
+        self.ElapsedTime = 0
+
 # ============================
 # Generalized Cross Validation
 # ============================
 
-def GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities,eta0,UseLogLambda,Lambda):
+def GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities,eta0,TimeCounter,UseLogLambda,Lambda):
     """
     Computes the CGV function, V(Lambda)
 
@@ -110,17 +152,26 @@ def GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities,eta0,UseLogLambda,
         if TraceEstimationUtilities is not None:
             Trace = n - m + mu * TraceEstimation.EstimateTrace(TraceEstimationUtilities,mu-eta0)
         else:
+            time0 = time.process_time()
             # Ainv = numpy.linalg.inv(A)
             # Trace = n - m + mu * numpy.trace(Ainv)
             Trace = n - m + mu * TraceEstimation.ComputeTraceOfInverse(A)
+            time1 = time.process_time()
+            if TimeCounter is not None:
+                TimeCounter.Add(time1 - time0)
     else:
         if TraceEstimationUtilities is not None:
             Trace = mu * TraceEstimation.EstimateTrace(TraceEstimationUtilities,mu-eta0)
-        In = numpy.eye(n)
-        B = X.dot(X.T) + mu * In
-        Binv = numpy.linalg.inv(B)
-        Trace = mu * numpy.trace(Binv)
-        # Trace = mu * TraceEstimation.ComputeTraceOfInverse(B)
+        else:
+            time0 = time.process_time()
+            In = numpy.eye(n)
+            B = X.dot(X.T) + mu * In
+            # Binv = numpy.linalg.inv(B)
+            # Trace = mu * numpy.trace(Binv)
+            Trace = mu * TraceEstimation.ComputeTraceOfInverse(B)
+            time1 = time.process_time()
+            if TimeCounter is not None:
+                TimeCounter.Add(time1 - time0)
 
     Denominator = (Trace / n)**2
 
@@ -132,7 +183,7 @@ def GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities,eta0,UseLogLambda,
 # Minimize GCV
 # ============
 
-def MinimizeGCV(X,K,z,TraceEstimationUtilities,eta0,LambdaBounds):
+def MinimizeGCV(X,K,z,TraceEstimationUtilities,eta0,LambdaBounds,InitialElapsedTime,TimeCounter):
     """
     In this function we use lambda in logarithmic scale.
     """
@@ -148,7 +199,7 @@ def MinimizeGCV(X,K,z,TraceEstimationUtilities,eta0,LambdaBounds):
     # Partial function to minimize
     GCV_PartialFunction = partial( \
             GeneralizedCrossValidation, \
-            X,K,z,TraceEstimationUtilities,eta0,UseLogLambda)
+            X,K,z,TraceEstimationUtilities,eta0,TimeCounter,UseLogLambda)
 
     # Optimization methods
     time0 = time.process_time()
@@ -162,11 +213,11 @@ def MinimizeGCV(X,K,z,TraceEstimationUtilities,eta0,LambdaBounds):
 
     # Global optimization methods (use for direct method)
     numpy.random.seed(31)   # for repeatability of results
-    # Res = scipy.optimize.differential_evolution(GCV_PartialFunction,Bounds,workers=-1,tol=Tolerance,atol=Tolerance,
-            # updating='deferred',polish=True,strategy='best1bin',popsize=40,maxiter=200) # Works well
+    Res = scipy.optimize.differential_evolution(GCV_PartialFunction,Bounds,workers=1,tol=Tolerance,atol=Tolerance,
+            updating='deferred',polish=True,strategy='best1bin',popsize=40,maxiter=200) # Works well
     # Res = scipy.optimize.dual_annealing(GCV_PartialFunction,Bounds,maxiter=500)
-    Res = scipy.optimize.shgo(GCV_PartialFunction,Bounds,
-            options={'minimize_every_iter': True,'local_iter': True,'minimizer_kwargs':{'method': 'Nelder-Mead'}})
+    # Res = scipy.optimize.shgo(GCV_PartialFunction,Bounds,
+            # options={'minimize_every_iter': True,'local_iter': True,'minimizer_kwargs':{'method': 'Nelder-Mead'}})
     # Res = scipy.optimize.basinhopping(GCV_PartialFunction,x0=GuessLogLambda)
 
     print(Res)
@@ -183,7 +234,7 @@ def MinimizeGCV(X,K,z,TraceEstimationUtilities,eta0,LambdaBounds):
 
     time1 = time.process_time()
     # time1 = time.time()
-    ElapsedTime = time1 - time0
+    ElapsedTime = InitialElapsedTime + time1 - time0
     print('Elapsed time: %f\n'%ElapsedTime)
 
     Results = \
@@ -279,13 +330,12 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
 
     NumberOfEstimates = len(TraceEstimationUtilitiesList)
 
-    eta = numpy.r_[-numpy.logspace(-9,-3.0001,500)[::-1],0,numpy.logspace(-8,3,500)]
+    eta = numpy.r_[-numpy.logspace(-9,-3.0001,500)[::-1],0,numpy.logspace(-9,3,500)]
     ZeroIndex = numpy.argmin(numpy.abs(eta))
     trace_upperbound = numpy.zeros(eta.size)
     trace_lowerbound = numpy.zeros(eta.size)
     trace_exact = numpy.zeros(eta.size)
     trace_estimate = numpy.zeros((NumberOfEstimates,eta.size))
-    # trace_estimate_alt = numpy.zeros(eta.size)
 
     for i in range(eta.size):
         if eta[i] >= 0.0:
@@ -301,7 +351,6 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
             I = numpy.eye(K.shape[0])
         Kn = K + eta[i]*I
         trace_exact[i] = TraceEstimation.ComputeTraceOfInverse(Kn)
-        # trace_estimate_alt[i] = 1.0 / (numpy.sqrt((eta[i]/n)**2 + ((1.0/T1)**2 - (1.0/T0)**2 - (eta1/n)**2)*(eta[i]/eta1) + (1/T0)**2));
 
         for j in range(NumberOfEstimates):
             trace_estimate[j,i] = TraceEstimation.EstimateTrace(TraceEstimationUtilitiesList[j],eta[i])
@@ -311,7 +360,6 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     tau_lowerbound = trace_lowerbound / n
     tau_exact = trace_exact / n
     tau_estimate = trace_estimate / n
-    # tau_estimate_alt = trace_estimate_alt / n
 
     # Plots trace
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(12,6))
@@ -422,11 +470,11 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     print('Plot saved to %s.'%(SaveFilename_PDF))
     print('Plot saved to %s.'%(SaveFilename_SVG))
 
-# ====
-# Main
-# ====
+# ================
+# Compute New Data
+# ================
 
-if __name__ == "__main__":
+def ComputeNewData(ResultsFilename):
 
     # n = 10000
     # m = 5000
@@ -454,23 +502,40 @@ if __name__ == "__main__":
         Cond_K = numpy.linalg.cond(K)
         print('Cond K0: %0.2e, Cond K: %0.2e'%(Cond_K0,Cond_K))
 
-    ComputeAuxilliaryMethod = True
+    # ComputeAuxilliaryMethod = True
+    ComputeAuxilliaryMethod = False
     UseEigenvaluesMethod = False
     # TraceEstimationMethod = 'OrthogonalFunctionsMethod2'
     TraceEstimationMethod = 'RationalPolynomialMethod'
     FunctionType = None
+
+    # Interpolation with 4 interpolant points
+    time0 = time.process_time()
     TraceEstimationUtilities_1 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,TraceEstimationMethod,FunctionType,[1e-3,1e-2,1e-1,1],ComputeAuxilliaryMethod)
-    # TraceEstimationUtilities_1 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,TraceEstimationMethod,FunctionType,[1e-4,1e-3,1e-2,1],ComputeAuxilliaryMethod)
+    time1 = time.process_time()
+    InitialElapsedTime1 = time1 - time0
+
+    # Interpolation with 2 interpolant points
+    time2 = time.process_time()
     TraceEstimationUtilities_2 = TraceEstimation.ComputeTraceEstimationUtilities(K,UseEigenvaluesMethod,TraceEstimationMethod,FunctionType,[1e-3,1e-1],ComputeAuxilliaryMethod)
+    time3 = time.process_time()
+    InitialElapsedTime2 = time3 - time2
 
     TraceEstimationUtilitiesList = [TraceEstimationUtilities_1,TraceEstimationUtilities_2]
 
     # Minimize GCV
     # LambdaBounds = (1e-4,1e1)
     LambdaBounds = (1e-16,1e16)
-    MinimizationResult1 = MinimizeGCV(X,K,z,None,eta0,LambdaBounds)
-    MinimizationResult2 = MinimizeGCV(X,K,z,TraceEstimationUtilities_1,eta0,LambdaBounds)
-    MinimizationResult3 = MinimizeGCV(X,K,z,TraceEstimationUtilities_2,eta0,LambdaBounds)
+    TimeCounter = TimeCounterClass()
+    MinimizationResult1 = MinimizeGCV(X,K,z,None,eta0,LambdaBounds,0,TimeCounter)
+    MinimizationResult2 = MinimizeGCV(X,K,z,TraceEstimationUtilities_1,eta0,LambdaBounds,InitialElapsedTime1,TimeCounter)
+    MinimizationResult3 = MinimizeGCV(X,K,z,TraceEstimationUtilities_2,eta0,LambdaBounds,InitialElapsedTime2,TimeCounter)
+
+    print('Time to compute trace only:')
+    print('Exact: %f'%(TimeCounter.ElapsedTime))
+    print('Interp 4 points: %f'%InitialElapsedTime1)
+    print('Interp 2 points: %f'%InitialElapsedTime2)
+    print('')
 
     Lambda = numpy.logspace(-7,1,100)
     GCV1 = numpy.empty(Lambda.size)
@@ -478,12 +543,12 @@ if __name__ == "__main__":
     GCV3 = numpy.empty(Lambda.size)
     UseLogLambda = False
     for i in range(Lambda.size):
-        GCV1[i] = GeneralizedCrossValidation(X,K,z,None,eta0,UseLogLambda,Lambda[i])
-        GCV2[i] = GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities_2,eta0,UseLogLambda,Lambda[i])
-        GCV3[i] = GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities_1,eta0,UseLogLambda,Lambda[i])
+        GCV1[i] = GeneralizedCrossValidation(X,K,z,None,eta0,None,UseLogLambda,Lambda[i])
+        GCV2[i] = GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities_2,eta0,None,UseLogLambda,Lambda[i])
+        GCV3[i] = GeneralizedCrossValidation(X,K,z,TraceEstimationUtilities_1,eta0,None,UseLogLambda,Lambda[i])
 
     # Make a dictionary list of data for plots
-    Data1 = \
+    PlotData1 = \
     {
         'Lambda': Lambda,
         'GCV': GCV1,
@@ -491,7 +556,7 @@ if __name__ == "__main__":
         'MinimizationResult': MinimizationResult1
     }
 
-    Data2 = \
+    PlotData2 = \
     {
         'Lambda': Lambda,
         'GCV': GCV2,
@@ -499,7 +564,7 @@ if __name__ == "__main__":
         'MinimizationResult': MinimizationResult3
     }
 
-    Data3 = \
+    PlotData3 = \
     {
         'Lambda': Lambda,
         'GCV': GCV3,
@@ -507,8 +572,48 @@ if __name__ == "__main__":
         'MinimizationResult': MinimizationResult2
     }
 
-    Data = [Data1,Data2,Data3]
+    PlotData = [PlotData1,PlotData2,PlotData3]
 
+    # Results dictionary
+    Results = \
+    {
+        'K': K,
+        'TraceEstimationUtilitiesList': TraceEstimationUtilitiesList,
+        'PlotData': PlotData,
+    }
+
+    # Save results
+    with open(ResultsFilename,'wb') as handle:
+        pickle.dump(Results,handle)
+    print('Results saved to %s.'%ResultsFilename)
+
+    return Results
+
+# ====
+# Main
+# ====
+
+if __name__ == "__main__":
+
+    UseSavedResults = False
+    ResultsFilename = './doc/data/GeneralizedCrossValidation.pickle'
+
+    if UseSavedResults == False:
+
+        # Compute new data
+        Results = ComputeNewData(ResultsFilename)
+
+    else:
+
+        # Load previously computed data
+        with open(ResultsFilename,'rb') as handle:
+            Results = pickle.load(handle)
+
+    # Extract variables
+    K = Results['K']
+    TraceEstimationUtilitiesList = Results['TraceEstimationUtilitiesList']
+    PlotData = Results['PlotData']
+        
     # Plots
+    PlotGeneralizedCrossValidation(PlotData)
     PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K)
-    PlotGeneralizedCrossValidation(Data)
