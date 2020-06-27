@@ -39,18 +39,11 @@ from scipy import optimize
 from functools import partial
 import time
 import pickle
+import os
 
 # Classes
 from TraceEstimation import TraceEstimation
 from PlotSettings import *
-
-# Uncomment lines below if measureing elapsed time. These will restrict python to only use one processing thread.
-# import os
-# os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
-# os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
-# os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
-# os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
-# os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 
 # =============
 # Generate Data
@@ -589,11 +582,39 @@ def ComputeNewData(ResultsFilename):
 
     return Results
 
+# ========================================
+# Restrict Computation To Single Processor
+# ========================================
+
+def RestrictComputationToSingleProcessor():
+    """
+    To measure the CPU time of all processors we use time.process_time() which takes into acount 
+    of elapsed time of all running threads. However, it seems when I use scipy.optimize.differential_evolution
+    method with either worker=-1 or worker=1, the CPU time is not measured properly.
+
+    After all failed trials, the only solution that measures time (for only scipy.optimize.differential_evolution) 
+    is to restrict the whole python script to use a single code. This function does that.
+
+    Note, other scipy.optimzie methods (like shgo) do not have this issue. That means, you can still run the code
+    in parallel and the time.process_time() measures the CPU time of all cores properly.
+    """
+
+    # Uncomment lines below if measureing elapsed time. These will restrict python to only use one processing thread.
+    os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+    os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+    os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+    os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+
 # ====
 # Main
 # ====
 
 if __name__ == "__main__":
+
+
+    # When measuring elapsed time, restrict number of processors to a single core only to measure time properly
+    RestrictComputationToSingleProcessor()
 
     UseSavedResults = False
     ResultsFilename = './doc/data/GeneralizedCrossValidation.pickle'

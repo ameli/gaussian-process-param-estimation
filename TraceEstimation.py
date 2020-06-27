@@ -25,18 +25,24 @@ import LinearAlgebra
 
 def LinearSolver(A,b):
 
-    # Use direct method
-    # x = scipy.sparse.linalg.spsolve(A,b)
+    if scipy.sparse.isspmatrix(A):
 
-    # Use iterative method
-    Tol = 1e-5
-    if b.ndim == 1:
-        x = scipy.sparse.linalg.cg(A,b,tol=Tol)[0]
+        # Use direct method
+        # x = scipy.sparse.linalg.spsolve(A,b)
+
+        # Use iterative method
+        Tol = 1e-5
+        if b.ndim == 1:
+            x = scipy.sparse.linalg.cg(A,b,tol=Tol)[0]
+        else:
+            x = numpy.zeros(b.shape)
+            for i in range(x.shape[1]):
+                x[:,i] = scipy.sparse.linalg.cg(A,b[:,i],tol=Tol)[0]
     else:
-        x = numpy.zeros(b.shape)
-        for i in range(x.shape[1]):
-            x[:,i] = scipy.sparse.linalg.cg(A,b[:,i],tol=Tol)[0]
-    return x
+        # Dense matrix
+        x = scipy.linalg.solve(A,b,sym_pos=True)
+
+        return x
 
 # ======================
 # Trace Estimation Class
@@ -155,6 +161,7 @@ class TraceEstimation():
 
             # Number of trials
             m = 20            # SETTING
+            # m = 30            # SETTING
             n = A.shape[0]
 
             # Create a random matrix with m random vectors with Radamacher distribution.
@@ -162,7 +169,6 @@ class TraceEstimation():
 
             # Orthonormalize random vectors
             Q,R = scipy.linalg.qr(E,mode='economic',overwrite_a=True,pivoting=False,check_finite=False)
-            # AinvQ = scipy.sparse.linalg.spsolve(A,Q)
             AinvQ = LinearSolver(A,Q)
             QtAinvQ = numpy.matmul(Q.T,AinvQ)
 
@@ -233,9 +239,9 @@ class TraceEstimation():
 
         # --------------
 
-        Trace = CholeksyMethod(A)
+        # Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        # Trace = StochasticLanczosQuadratureMethod(A)
+        Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 
