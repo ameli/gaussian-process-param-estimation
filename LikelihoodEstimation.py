@@ -385,14 +385,18 @@ class LikelihoodEstimation():
             TraceKninv = numpy.sum(1.0/(K_eigenvalues + eta))
         else:
             TraceKninv = TraceEstimation.EstimateTrace(TraceEstimationUtilities,eta)
-            # TraceKninv = TraceEstimation.ComputeTraceOfInverse(Kn)    # Use direct method without interpolation
+            # TraceKninv = TraceEstimation.ComputeTraceOfInverse(Kn)    # Use direct method without interpolation, Test
         YtY = numpy.matmul(Y.T,Y)
-        TraceM2 = numpy.trace(numpy.matmul(Binv,YtY))
-        # TraceM2 = numpy.trace(numpy.matmul(Y,numpy.matmul(Binv,Y.T)))
-        TraceM = TraceKninv - TraceM2
+        TraceBinvYtY = numpy.trace(numpy.matmul(Binv,YtY))
+        # TraceBinvYtY = numpy.trace(numpy.matmul(Y,numpy.matmul(Binv,Y.T)))
+        TraceM = TraceKninv - TraceBinvYtY
 
         # Derivative of log likelihood
-        dlp_deta = -0.5*((TraceM/(n-m))*numpy.dot(z,Mz) - numpy.dot(Mz,Mz))
+        zMz = numpy.dot(z,Mz)
+        zM2z = numpy.dot(Mz,Mz)
+        sigma02 = zMz/(n-m)
+        # dlp_deta = -0.5*((TraceM/(n-m))*zMz - zM2z)
+        dlp_deta = -0.5*(TraceM - zM2z/sigma02)
 
         return dlp_deta
 
@@ -483,7 +487,13 @@ class LikelihoodEstimation():
             v = scipy.linalg.solve(Kn,Mz,sym_pos = True)
         MMz = v - Y_Binv_YtMz
 
-        d2lp_deta2 = 0.5*(TraceM2 * numpy.dot(Mz,Mz) - 2.0*TraceM * numpy.dot(Mz,MMz))
+        # Second derivative (only at the location ofzero first derivative)
+        zMz = numpy.dot(z,Mz)
+        zM2z = numpy.dot(Mz,Mz)
+        zM3z = numpy.dot(Mz,MMz)
+        sigma02 = zMz / (n-m)
+        # d2lp_deta2 = 0.5*(TraceM2 * zM2z - 2.0*TraceM * zM3z)
+        d2lp_deta2 = (0.5/sigma02)*((TraceM2/(n-m) + (TraceM/(n-m))**2) * zMz - 2.0*zM3z)
 
         return d2lp_deta2
 
@@ -785,6 +795,89 @@ class LikelihoodEstimation():
         ax.set_title('Log Likelihood function')
         plt.show
 
+    # ==================================
+    # Compute Bounds of First Derivative
+    # ==================================
+
+    @staticmethod
+    def ComputeBoundsOfFirstDerivative(X,K,eta):
+        """
+        Upper and lower bound.
+        """
+
+        n,m = X.shape
+        Eigenvalue_smallest = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False,subset_by_index=[0,0])[0]
+        Eigenvalue_largest = scipy.linalg.eigh(K,eigvals_only=True,check_finite=False,subset_by_index=[n-1,n-1])[0]
+        # print('Eigenvalues of K:')
+        # print(Eigenvalue_smallest)
+        # print(Eigenvalue_largest)
+        dlp_deta_UpperBound = 0.5*(n-m)*(1/(eta+Eigenvalue_smallest) - 1/(eta+Eigenvalue_largest))
+        dlp_deta_LowerBound = -dlp_deta_UpperBound
+
+        return dlp_deta_UpperBound,dlp_deta_LowerBound
+
+    # =====================================
+    # Compute Asymptote of First Derivative
+    # =====================================
+
+    @staticmethod
+    def ComputeAsymptoteOfFirstDerivative(z,X,K,eta):
+        """
+        Computes first and second order asymptote to the first derivative of log marginal likelihood function.
+        """
+
+        # Initialize output
+        Asymptote_1_order = numpy.empty(eta.size)
+        Asymptote_2_order = numpy.empty(eta.size)
+
+        n,m = X.shape
+        I = numpy.eye(n)
+        Im = numpy.eye(m)
+        Q = X@numpy.linalg.inv(X.T@X)@X.T
+        R = I - Q
+        N  = K@R
+        N2 = N@N
+        N3 = N2@N
+        N4 = N3@N
+
+        mtrN = numpy.trace(N)/(n-m)
+        mtrN2 = numpy.trace(N2)/(n-m)
+        
+        A0 = -R@(mtrN*I - N)
+        A1 =  R@(mtrN*N + mtrN2*I - 2*N2)
+        A2 = -R@(mtrN*N2 + mtrN2*N - 2*N3)
+        A3 =  R@(mtrN2*N2 - N4)
+        
+        zRz = numpy.dot(z,numpy.dot(R,z))
+        z_Rnorm = numpy.sqrt(zRz)
+        zc = z / z_Rnorm
+        
+        a0 = numpy.dot(zc,numpy.dot(A0,zc))
+        a1 = numpy.dot(zc,numpy.dot(A1,zc))
+        a2 = numpy.dot(zc,numpy.dot(A2,zc))
+        a3 = numpy.dot(zc,numpy.dot(A3,zc))
+        
+        for i in range(eta.size):
+
+            Asymptote_1_order[i] = (-0.5*(n-m))*(a0 + a1/eta[i])/eta[i]**2 
+            Asymptote_2_order[i] = (-0.5*(n-m))*(a0 + a1/eta[i] + a2/eta[i]**2 + a3/eta[i]**3)/eta[i]**2 
+
+        # Roots
+        Polynomial_1 = numpy.array([a0,a1])
+        Polynomial_2 = numpy.array([a0,a1,a2,a3])
+
+        Roots_1 = numpy.roots(Polynomial_1)
+        Roots_2 = numpy.roots(Polynomial_2)
+
+        # Remove complex roots
+        Roots_2 = numpy.sort(numpy.real(Roots_2[numpy.abs(numpy.imag(Roots_2)) < 1e-10]))
+
+        print('Asymptote roots:')
+        print(Roots_1)
+        print(Roots_2)
+
+        return Asymptote_1_order,Asymptote_2_order,Roots_1,Roots_2
+
     # ====================================
     # Plot Log Likelihood First Derivative
     # ====================================
@@ -796,6 +889,8 @@ class LikelihoodEstimation():
         Also it shows where the optimal eta is, which is the location
         where the derivative is zero.
         """
+
+        print('Plot first derivative ...')
 
         if (Optimal_eta != 0) and (not numpy.isinf(Optimal_eta)):
             PlotOptimal_eta = True
@@ -829,23 +924,37 @@ class LikelihoodEstimation():
         for i in range(eta.size):
             dlp_deta[i] = LikelihoodEstimation.LogLikelihoodFirstDerivative(z,X,K,TraceEstimationUtilities,numpy.log10(eta[i]))
 
+        # Compute upper and lower bound of derivative
+        dlp_deta_UpperBound,dlp_deta_LowerBound = LikelihoodEstimation.ComputeBoundsOfFirstDerivative(X,K,eta)
+
+        # Compute asymptote of first derivative, using both first and second order approximation
+        try:
+            # eta_HighRes migh not be defined, depending on PlotOptimal_eta
+            x = eta_HighRes
+        except:
+            x = numpy.logspace(1,LogEtaEnd,100)
+        dlp_deta_Asymptote_1,dlp_deta_Asymptote_2,Roots_1,Roots_2 = LikelihoodEstimation.ComputeAsymptoteOfFirstDerivative(z,X,K,x)
+
         # Main plot
         fig,ax1 = plt.subplots()
-        ax1.semilogx(eta,dlp_deta,color='black')
+        ax1.semilogx(eta,dlp_deta_UpperBound,'--',color='black',label='Upper bound')
+        ax1.semilogx(eta,dlp_deta_LowerBound,'-.',color='black',label='Lower bound')
+        ax1.semilogx(eta,dlp_deta,color='black',label='Exact')
         if PlotOptimal_eta:
-            ax1.semilogx(Optimal_eta,0,'.',marker='o',markersize=4,color='black',label=r'Root at $\hat{\eta}$')
+            ax1.semilogx(Optimal_eta,0,'.',marker='o',markersize=4,color='black')
 
         # Min of plot limit
         # ax1.set_yticks(numpy.r_[numpy.arange(-120,1,40),20])
         MaxPlot = numpy.max(dlp_deta)
         MaxPlotLim = numpy.ceil(numpy.abs(MaxPlot)/10.0)*10.0*numpy.sign(MaxPlot)
 
-        ax1.set_yticks(numpy.array([-20,0,MaxPlotLim]))
-        ax1.set_ylim([-20,MaxPlotLim])
+        MinPlotLim1 = -100
+        ax1.set_yticks(numpy.array([MinPlotLim1,0,MaxPlotLim]))
+        ax1.set_ylim([MinPlotLim1,MaxPlotLim])
         ax1.set_xlim([eta[0],eta[-1]])
         ax1.set_xlabel(r'$\eta$')
-        ax1.set_ylabel(r'$\mathrm{d} L_{\hat{\sigma}^2(\eta)}(\eta)/\mathrm{d} \eta$')
-        ax1.set_title('Derivative of Marginal Log-Likelihood function')
+        ax1.set_ylabel(r'$\mathrm{d} \ell_{\hat{\sigma}^2(\eta)}(\eta)/\mathrm{d} \eta$')
+        ax1.set_title('Derivative of Log Marginal Likelihood Function')
         ax1.grid(True)
         # ax1.legend(loc='upper left',frameon=False)
         ax1.patch.set_facecolor('none')
@@ -854,7 +963,7 @@ class LikelihoodEstimation():
         if PlotOptimal_eta:
             ax2 = plt.axes([0,0,1,1])
             # Manually set the position and relative size of the inset axes within ax1
-            ip = InsetPosition(ax1,[0.43,0.4,0.5,0.5])
+            ip = InsetPosition(ax1,[0.43,0.39,0.5,0.5])
             ax2.set_axes_locator(ip)
             # Mark the region corresponding to the inset axes on ax1 and draw lines
             # in grey linking the two axes.
@@ -864,9 +973,17 @@ class LikelihoodEstimation():
                 mark_inset(ax1, ax2,loc1=3,loc2=4,facecolor='none',edgecolor='0.5')
             else:
                 mark_inset(ax1, ax2,loc1=3,loc2=1,facecolor='none',edgecolor='0.5')
+
+            ax2.semilogx(eta,numpy.abs(dlp_deta_UpperBound),'--',color='black')
+            ax2.semilogx(eta,numpy.abs(dlp_deta_LowerBound),'-.',color='black')
+            ax2.semilogx(x,dlp_deta_Asymptote_1,label=r'$1^{\text{st}}$ order asymptote',color='chocolate')
+            ax2.semilogx(x,dlp_deta_Asymptote_2,label=r'$2^{\text{nd}}$ order asymptote',color='olivedrab')
             ax2.semilogx(eta_HighRes,dlp_deta[eta_LowRes_left.size:eta_LowRes_left.size+eta_HighRes.size],color='black')
-            ax2.semilogx(Optimal_eta,0,marker='o',markersize=4,color='black')
+            ax2.semilogx(Optimal_eta,0,marker='o',markersize=6,linewidth=0,color='white',markerfacecolor='black',label=r'Exact root at $\hat{\eta}_{\phantom{2}} = 10^{%0.2f}$'%numpy.log10(Optimal_eta))
+            ax2.semilogx(Roots_1[-1],0,marker='o',markersize=6,linewidth=0,color='white',markerfacecolor='chocolate',label=r'Approximated root at $\hat{\eta}_1 = 10^{%0.2f}$'%numpy.log10(Roots_1[-1]))
+            ax2.semilogx(Roots_2[-1],0,marker='o',markersize=6,linewidth=0,color='white',markerfacecolor='olivedrab',label=r'Approximated root at $\hat{\eta}_2 = 10^{%0.2f}$'%numpy.log10(Roots_2[-1]))
             ax2.set_xlim([eta_HighRes[0],eta_HighRes[-1]])
+            # plt.setp(ax2.get_yticklabels(),backgroundcolor='white')
 
             # Find suitable range for plot limits
             MinPlot = numpy.abs(numpy.min(dlp_deta))
@@ -875,14 +992,25 @@ class LikelihoodEstimation():
             ax2.set_ylim([-MinPlotLim,MinPlotLim])
             ax2.set_yticks([-numpy.abs(MinPlotLim),0,numpy.abs(MinPlotLim)])
 
-            ax2.text(Optimal_eta*10**0.1,MinPlotLim*0.1,r'$\hat{\eta} = 10^{%0.2f}$'%numpy.log10(Optimal_eta),horizontalalignment='left',verticalalignment='bottom')
-            ax2.ticklabel_format(axis='y',style='sci',scilimits=(0,0))
+            ax2.text(Optimal_eta*10**0.05,MinPlotLim*0.05,r'$\hat{\eta}$'%numpy.log10(Optimal_eta),horizontalalignment='left',verticalalignment='bottom',fontsize=10)
+            ax2.text(Roots_1[-1]*10**0.05,MinPlotLim*0.05,r'$\hat{\eta}_1$'%numpy.log10(Optimal_eta),horizontalalignment='left',verticalalignment='bottom',fontsize=10)
+            ax2.text(Roots_2[-1]*10**0.05,MinPlotLim*0.05,r'$\hat{\eta}_2$'%numpy.log10(Optimal_eta),horizontalalignment='left',verticalalignment='bottom',fontsize=10)
+            # ax2.ticklabel_format(axis='y',style='sci',scilimits=(0,0))
             ax2.grid(True,axis='y')
             ax2.set_facecolor('oldlace')
             plt.setp(ax2.get_xticklabels(),backgroundcolor='white')
+            ax2.tick_params(axis='x',labelsize=10)
+            ax2.tick_params(axis='y',labelsize=10)
 
             # ax2.set_yticklabels(ax2.get_yticks(),backgroundcolor='w')
             # ax2.tick_params(axis='y',which='major',pad=0)
+
+        handles,labels = [],[]
+        for ax in [ax1,ax2]:
+            for h,l in zip(*ax.get_legend_handles_labels()):
+                handles.append(h)
+                labels.append(l)
+        plt.legend(handles,labels,frameon=False,fontsize='small',loc='upper left',bbox_to_anchor=(1.2,1.04))
 
         # Save plots
         # plt.tight_layout()

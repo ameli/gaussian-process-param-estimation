@@ -239,9 +239,9 @@ class TraceEstimation():
 
         # --------------
 
-        # Trace = CholeksyMethod(A)
+        Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        Trace = StochasticLanczosQuadratureMethod(A)
+        # Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 

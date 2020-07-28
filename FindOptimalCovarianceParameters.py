@@ -591,12 +591,12 @@ def PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithP
 
     if PlotDataWithPrior == False:
         # Plot data without prior. The data is likelihood
-        ax.set_title('Profile Log Likelihood')
-        cbar.set_label(r'$L_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}) - L_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu)$')
+        ax.set_title('Profile Log Marginal Likelihood')
+        cbar.set_label(r'$\ell_{\hat{\sigma}^2,\hat{\sigma}_0^2}(\hat{\alpha},\hat{\nu}) - \ell_{\hat{\sigma}^2,\hat{\sigma}_0^2}(\alpha,\nu)$')
     else:
         # Plot data with prior. The data is posteror
         ax.set_title('Profile Log Posterior')
-        cbar.set_label(r'$\log p_{\hat{\sigma},\hat{\sigma}_0}(\hat{\alpha},\hat{\nu}|\boldsymbol{z}) - \log p_{\hat{\sigma},\hat{\sigma}_0}(\alpha,\nu|\boldsymbol{z})$')
+        cbar.set_label(r'$\log p_{\hat{\sigma}^2,\hat{\sigma}_0^2}(\hat{\alpha},\hat{\nu}|\boldsymbol{z}) - \log p_{\hat{\sigma}^2,\hat{\sigma}_0^2}(\alpha,\nu|\boldsymbol{z})$')
 
     # To reduce file size, rasterize contour fill plot
     plt.gca().set_rasterization_zorder(-1)
@@ -699,8 +699,8 @@ if __name__ == "__main__":
     """
 
     # Settings
-    PlotDataWithPrior = False     # Plots data without prior
-    # PlotDataWithPrior = True        # Plots data with prior
+    # PlotDataWithPrior = False     # Plots data without prior
+    PlotDataWithPrior = True        # Plots data with prior
 
     # UseSavedResults = False       # Computes new results
     UseSavedResults = True          # Plots previously computed data from pickle files

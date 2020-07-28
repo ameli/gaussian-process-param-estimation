@@ -54,6 +54,19 @@ def ComputeNoiseForSingleData():
     # BasisFunctionsType = 'Polynomial-2-Trigonometric-1'
     X = Data.GenerateLinearModelBasisFunctions(x,y,BasisFunctionsType)
 
+    # Test
+    NewData = \
+    {
+        'z': z,
+        'K': K,
+        'X': X
+    }
+    import pickle
+    filename = './doc/data/FirstDet.pickle'
+    with open(filename,'wb') as h:
+        pickle.dump(NewData,h)
+    print('Wrote to %s.'%filename)
+
     # Trace estimation weights
     UseEigenvaluesMethod = False    # If set to True, it overrides the interpolation estimation methods
     # TraceEstimationMethod = 'NonOrthogonalFunctionsMethod'   # highest condtion number
