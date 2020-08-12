@@ -26,6 +26,12 @@ Notes:
       Otherwise, all measured elapsed times will be wrong due to the parallel processing.
       The only way that seems to measure elased time of multicore process properly is to 
       restrict python to use multi-cores.
+
+      Note:
+      In rational polynomial method, p in the code means the number of interpolant points.
+      However, in the paper, p means the degree of the rational polynomial.
+      In the code we have p = 2, and p = 4, (num points) but in the plots in this script, they are
+      labeled as p = 1 and p = 2 (degree of the rational polynomial).
 """
 
 # =======
@@ -272,8 +278,8 @@ def PlotGeneralizedCrossValidation(Data):
         h_list.append(h)
         ax.semilogx(Data[i]['MinimizationResult']['MinLambda'],Data[i]['MinimizationResult']['MinGCV'],'o',color=ColorsList[i],markersize=3)
 
-    ax.set_xlabel(r'$\lambda$')
-    ax.set_ylabel(r'$V(\lambda)$')
+    ax.set_xlabel(r'$\theta$')
+    ax.set_ylabel(r'$V(\theta)$')
     ax.set_title('Generalized Cross Validation')
     ax.set_xlim([Lambda[0],Lambda[-1]])
 
@@ -357,8 +363,8 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     # Plots trace
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(12,6))
     ax[0].plot(eta,tau_exact,color='black',label='Exact')
-    ax[0].plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq s$)')
-    ax[0].plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < s$)')
+    ax[0].plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq 0$)')
+    ax[0].plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < 0$)')
     # ax[0].plot(eta,tau_lowerbound,'-.',color='black',label='Lower bound')
 
     ColorsList =["#d62728",
@@ -374,13 +380,13 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
 
     for j in reversed(range(NumberOfEstimates)):
         p = TraceEstimationUtilitiesList[j]['AuxilliaryEstimationMethodUtilities']['p']
-        q = ax[0].plot(eta,tau_estimate[j,:],label=r'Interpolation, $p=%d$'%(p),color=ColorsList[j])
+        q = ax[0].plot(eta,tau_estimate[j,:],label=r'Interpolation, $p=%d$'%(p//2),color=ColorsList[j])
         if j == 0:
             q[0].set_zorder(20)
 
     ax[0].set_xlim([eta[0],eta[-1]])
     ax[0].set_ylim([1e-3,1e4])
-    ax[0].set_xlabel(r'$\eta - s$')
+    ax[0].set_xlabel(r'$\eta$')
     ax[0].set_ylabel(r'$\tau(\eta)$')
     ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(\eta)$')
     ax[0].grid(True)
@@ -402,8 +408,8 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     InsetColor = 'oldlace'
     mark_inset(ax[0],ax2,loc1=1,loc2=4,facecolor=InsetColor,edgecolor='0.5')
     ax2.plot(eta,tau_exact,color='black',label='Exact')
-    ax2.plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq s$)')
-    ax2.plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < s$)')
+    ax2.plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq 0$)')
+    ax2.plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < 0$)')
     for j in reversed(range(NumberOfEstimates)):
         ax2.plot(eta,tau_estimate[j,:],color=ColorsList[j])
     # ax2.set_xlim([1e-3,1.4e-3])
@@ -426,12 +432,12 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
 
     # Plot errors
     # ax[1].semilogx(eta,tau_upperbound-tau_exact,'--',color='black',label='Upper bound')  # Absolute error
-    ax[1].semilogx(eta[ZeroIndex:],100*(tau_upperbound[ZeroIndex:]/tau_exact[ZeroIndex:]-1),'--',color='black',label=r'Upper bound (at $\eta \geq s$)',zorder=15)  # Relative error
-    ax[1].semilogx(eta[:ZeroIndex],100*(tau_upperbound[:ZeroIndex]/tau_exact[:ZeroIndex]-1),'-.',color='black',label=r'Lower bound (at $\eta < s$)',zorder=15)  # Relative error
+    ax[1].semilogx(eta[ZeroIndex:],100*(tau_upperbound[ZeroIndex:]/tau_exact[ZeroIndex:]-1),'--',color='black',label=r'Upper bound (at $\eta \geq 0$)',zorder=15)  # Relative error
+    ax[1].semilogx(eta[:ZeroIndex],100*(tau_upperbound[:ZeroIndex]/tau_exact[:ZeroIndex]-1),'-.',color='black',label=r'Lower bound (at $\eta < 0$)',zorder=15)  # Relative error
     for j in reversed(range(NumberOfEstimates)):
         p = TraceEstimationUtilitiesList[j]['AuxilliaryEstimationMethodUtilities']['p']
         # q = ax[1].semilogx(eta,tau_estimate[j,:]-tau_exact,label=r'Estimation, $p=%d$'%(p),color=ColorsList[j])  # Absolute error
-        q = ax[1].semilogx(eta,100*(tau_estimate[j,:]/tau_exact-1),label=r'Interpolation, $p=%d$'%(p),color=ColorsList[j])       # Relative error
+        q = ax[1].semilogx(eta,100*(tau_estimate[j,:]/tau_exact-1),label=r'Interpolation, $p=%d$'%(p//2),color=ColorsList[j])       # Relative error
         if j == 0:
             q[0].set_zorder(20)
     # ax[1].semilogx(eta,tau_estimate_alt-tau_exact,label=r'Alt. estimation',zorder=-20)   # Absolute error
@@ -439,7 +445,7 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     ax[1].set_xlim([eta[0],eta[-1]])
     ax[1].set_ylim([-0.5,2.5])
     ax[1].set_yticks(numpy.arange(-0.5,2.6,0.5))
-    ax[1].set_xlabel(r'$\eta - s$')
+    ax[1].set_xlabel(r'$\eta$')
     ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(\eta)/\tau_{\mathrm{exact}}(\eta) - 1$')
     ax[1].set_title(r'(b) Relative error of estimation of $\tau(\eta)$')
     ax[1].grid(True)
@@ -530,7 +536,7 @@ def ComputeNewData(ResultsFilename):
     print('Interp 2 points: %f'%InitialElapsedTime2)
     print('')
 
-    Lambda = numpy.logspace(-7,1,100)
+    Lambda = numpy.logspace(-7,1,500)
     GCV1 = numpy.empty(Lambda.size)
     GCV2 = numpy.empty(Lambda.size)
     GCV3 = numpy.empty(Lambda.size)
@@ -553,7 +559,7 @@ def ComputeNewData(ResultsFilename):
     {
         'Lambda': Lambda,
         'GCV': GCV2,
-        'Label': r'Interpolation, $p = 2$',
+        'Label': r'Interpolation, $p = 1$',
         'MinimizationResult': MinimizationResult3
     }
 
@@ -561,7 +567,7 @@ def ComputeNewData(ResultsFilename):
     {
         'Lambda': Lambda,
         'GCV': GCV3,
-        'Label': r'Interpolation, $p = 4$',
+        'Label': r'Interpolation, $p = 2$',
         'MinimizationResult': MinimizationResult2
     }
 
