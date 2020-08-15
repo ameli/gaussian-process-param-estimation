@@ -80,8 +80,8 @@ class TraceEstimation():
             """
 
             # Matrix size limit to switch direct to indirect algorthm
-            UseInverseMatrix = False  # SETTING
-            # UseInverseMatrix = True  # SETTING
+            # UseInverseMatrix = False  # SETTING
+            UseInverseMatrix = True  # SETTING
 
             # Determine to use Sparse
             UseSparse = False

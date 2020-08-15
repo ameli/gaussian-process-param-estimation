@@ -988,7 +988,8 @@ class LikelihoodEstimation():
             # Find suitable range for plot limits
             MinPlot = numpy.abs(numpy.min(dlp_deta))
             MinPlotBase = 10**numpy.floor(numpy.log10(numpy.abs(MinPlot)))
-            MinPlotLim = numpy.ceil(MinPlot/MinPlotBase)*MinPlotBase
+            # MinPlotLim = numpy.ceil(MinPlot/MinPlotBase)*MinPlotBase
+            MinPlotLim = numpy.ceil(MinPlot/MinPlotBase + 1.0)*MinPlotBase
             ax2.set_ylim([-MinPlotLim,MinPlotLim])
             ax2.set_yticks([-numpy.abs(MinPlotLim),0,numpy.abs(MinPlotLim)])
 

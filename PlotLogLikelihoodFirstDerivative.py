@@ -1,8 +1,19 @@
 #! /usr/bin/env python
 
 """
-Before running this code, make sure in TraceEstimation.py, the ComputeTraceOfInverse() is set to
-Cholsky method, with either UseInverse or without it.
+Configurations:
+
+1. Before running this code, make sure in TraceEstimation.py, the ComputeTraceOfInverse() is set to
+   Cholsky method, with either UseInverse or without it. With UseInverse, the code is faster but the
+   results for small n (~2000 more or less) is the samewith and without computing inverse directly.
+
+2. Also, for accurate results, disable interpolation of trace, rather compute trace for every eta 
+   directly. The results of the paper for the table 1 is obtained this way. But the rest of the 
+   paper, especially those reuslts for performance, the trace is interpolated.
+   to disable interpolation of trace, do as follow:
+       in LikelihoodEstimaton.py > LogLikelihoodFirstDerivative(), comment and uncomment these two likes as below:
+           # TraceKninv = TraceEstimation.EstimateTrace(TraceEstimationUtilities,eta)
+           TraceKninv = TraceEstimation.ComputeTraceOfInverse(Kn)    # Use direct method without interpolation, Test
 """
 
 # =======
@@ -53,19 +64,6 @@ def ComputeNoiseForSingleData():
     # BasisFunctionsType = 'Polynomial-5'
     # BasisFunctionsType = 'Polynomial-2-Trigonometric-1'
     X = Data.GenerateLinearModelBasisFunctions(x,y,BasisFunctionsType)
-
-    # Test
-    NewData = \
-    {
-        'z': z,
-        'K': K,
-        'X': X
-    }
-    import pickle
-    filename = './doc/data/FirstDet.pickle'
-    with open(filename,'wb') as h:
-        pickle.dump(NewData,h)
-    print('Wrote to %s.'%filename)
 
     # Trace estimation weights
     UseEigenvaluesMethod = False    # If set to True, it overrides the interpolation estimation methods
