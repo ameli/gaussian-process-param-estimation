@@ -1,5 +1,18 @@
 #! /usr/bin/env python
 
+"""
+Configurations before runing this script:
+
+    -In Data.py: disable Ray paralleism by:
+        In GenerateCorrelationMatrix(), set RunInParallel to False.
+        Before the signature of ComputeCorrelationForAProcess(), comment @ray.remote.
+
+    - In TraceEstimation.py > ComputeTraceOfInverse(), set the method to the Stochastic Lanczos Quadrature Method, and
+    - In LikelihoodEstimation, set the estimate of trace to the interpolation method, like this
+            TraceKninv = TraceEstimation.EstimateTrace(TraceEstimationUtilities,eta)
+            # TraceKninv = TraceEstimation.ComputeTraceOfInverse(Kn)    # Use direct method without interpolation, Test
+"""
+
 # =======
 # Imports
 # =======
@@ -699,14 +712,14 @@ if __name__ == "__main__":
     """
 
     # Settings
-    # PlotDataWithPrior = False     # Plots data without prior
-    PlotDataWithPrior = True        # Plots data with prior
+    PlotDataWithPrior = False     # Plots data without prior
+    # PlotDataWithPrior = True        # Plots data with prior
 
     # UseSavedResults = False       # Computes new results
     UseSavedResults = True          # Plots previously computed data from pickle files
 
-    # ComputePlotData = True        # If UseSavedResults is False, this computes the data of the plot
-    ComputePlotData = False         # If UseSavedResults is False, this computes optimal parameters
+    ComputePlotData = True        # If UseSavedResults is False, this computes the data of the plot
+    # ComputePlotData = False         # If UseSavedResults is False, this computes optimal parameters
 
     # Filenames
     if PlotDataWithPrior:
@@ -733,7 +746,7 @@ if __name__ == "__main__":
 
             # Generate new data for plot (may take long time)
             ComputeLogLikelihoodVersusParameters(ResultsFilename)
-            PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename)
+            PlotLogLikelihoodVersusParameters(ResultsFilename,PlotFilename,PlotDataWithPrior)
 
         else:
 

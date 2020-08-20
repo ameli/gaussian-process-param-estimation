@@ -110,7 +110,7 @@ def CorrelationKernel(Distance,DecorrelationScale,nu):
 # =================================
 
 # if RayInstalled:
-@ray.remote
+# @ray.remote
 def ComputeCorrelationForAProcess(DecorrelationScale,nu,KernelThreshold,x,y,UseSparse,NumCPUs,StartIndex):
     """
     Computes correlation at the ColumnIndex-th column and row of K.
@@ -186,7 +186,8 @@ def GenerateCorrelationMatrix(x,y,z,DecorrelationScale,nu,UseSparse):
         if Adjacency < 1.0:
             raise ValueError('Adjacency: %0.2f. Correlation matrix will become identity since Kernel length is less that grid size. To increase adjacency, consider decreasing KernelThreshold or increase DecorrelationScale.'%(Adjacency))
 
-    RunInParallel = True  # SETTING
+    # RunInParallel = True  # SETTING
+    RunInParallel = False  # SETTING
 
     # Disable parallel processing if ray is not installed
     if not RayInstalled:
