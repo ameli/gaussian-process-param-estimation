@@ -239,9 +239,9 @@ class TraceEstimation():
 
         # --------------
 
-        # Trace = CholeksyMethod(A)
+        Trace = CholeksyMethod(A)
         # Trace = HutchinsonMethod(A)
-        Trace = StochasticLanczosQuadratureMethod(A)
+        # Trace = StochasticLanczosQuadratureMethod(A)
 
         return Trace
 
@@ -880,7 +880,7 @@ class TraceEstimation():
     @staticmethod
     def PlotTraceEstimate(TraceEstimationUtilitiesList,K):
         """
-        Plots the curve of trace of Kn inverse versus eta.
+        Plots the curve of trace of Kn inverse versus eta (we use t instead of eta in the plots).
         """
 
         # If not a list, embed the object into a list
@@ -957,9 +957,9 @@ class TraceEstimation():
 
         ax[0].set_xlim([eta[0],eta[-1]])
         ax[0].set_ylim([1e-3,1e1])
-        ax[0].set_xlabel(r'$\eta$')
-        ax[0].set_ylabel(r'$\tau(\eta)$')
-        ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(\eta)$')
+        ax[0].set_xlabel(r'$t$')
+        ax[0].set_ylabel(r'$\tau(t)$')
+        ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(t)$')
         ax[0].grid(True)
         ax[0].legend(fontsize='x-small',loc='upper right')
 
@@ -989,7 +989,7 @@ class TraceEstimation():
         ax2.xaxis.set_minor_formatter(NullFormatter())
         ax2.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         ax2.set_facecolor(InsetColor)
-        plt.setp(ax2.get_yticklabels(),backgroundcolor='white')
+        # plt.setp(ax2.get_yticklabels(),backgroundcolor='white')
 
         # ax2.ticklabel_format(axis='y',style='sci',scilimits=(0,0))
         # ax2.grid(True,axis='y')
@@ -1008,9 +1008,9 @@ class TraceEstimation():
         ax[1].set_xlim([eta[0],eta[-1]])
         ax[1].set_yticks(numpy.arange(-0.03,0.13,0.03)*100)
         ax[1].set_ylim([-3,12])
-        ax[1].set_xlabel(r'$\eta$')
-        ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(\eta)/\tau_{\mathrm{exact}}(\eta) - 1$')
-        ax[1].set_title(r'(b) Relative error of interpolation of $\tau(\eta)$')
+        ax[1].set_xlabel(r'$t$')
+        ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(t)/\tau_{\mathrm{exact}}(t) - 1$')
+        ax[1].set_title(r'(b) Relative error of interpolation of $\tau(t)$')
         ax[1].grid(True)
         ax[1].legend(fontsize='x-small')
 

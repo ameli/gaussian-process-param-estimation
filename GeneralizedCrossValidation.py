@@ -20,7 +20,7 @@ Notes:
       NOTE:
       If you want to measure the elased time of minimizing GCV, do the followings:
 
-      1. in the DIfferential Evolution method, set worker=1 (NOT -1).
+      1. in the Differential Evolution method, set worker=1 (NOT -1).
       2. In the import os, uncomment all the os.environ(...) variables.
 
       Otherwise, all measured elapsed times will be wrong due to the parallel processing.
@@ -363,8 +363,8 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     # Plots trace
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(12,6))
     ax[0].plot(eta,tau_exact,color='black',label='Exact')
-    ax[0].plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq 0$)')
-    ax[0].plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < 0$)')
+    ax[0].plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $t \geq 0$)')
+    ax[0].plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $t < 0$)')
     # ax[0].plot(eta,tau_lowerbound,'-.',color='black',label='Lower bound')
 
     ColorsList =["#d62728",
@@ -386,9 +386,9 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
 
     ax[0].set_xlim([eta[0],eta[-1]])
     ax[0].set_ylim([1e-3,1e4])
-    ax[0].set_xlabel(r'$\eta$')
-    ax[0].set_ylabel(r'$\tau(\eta)$')
-    ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(\eta)$')
+    ax[0].set_xlabel(r'$t$')
+    ax[0].set_ylabel(r'$\tau(t)$')
+    ax[0].set_title(r'(a) Exact, interpolation, and bounds of $\tau(t)$')
     ax[0].grid(True)
     ax[0].legend(fontsize='x-small',loc='lower left')
     ax[0].set_xscale('symlog',linthreshx=1e-8)
@@ -408,8 +408,8 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     InsetColor = 'oldlace'
     mark_inset(ax[0],ax2,loc1=1,loc2=4,facecolor=InsetColor,edgecolor='0.5')
     ax2.plot(eta,tau_exact,color='black',label='Exact')
-    ax2.plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $\eta \geq 0$)')
-    ax2.plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $\eta < 0$)')
+    ax2.plot(eta[ZeroIndex:],tau_upperbound[ZeroIndex:],'--',color='black',label=r'Upper bound (at $t \geq 0$)')
+    ax2.plot(eta[:ZeroIndex],tau_upperbound[:ZeroIndex],'-.',color='black',label=r'Lower bound (at $t < 0$)')
     for j in reversed(range(NumberOfEstimates)):
         ax2.plot(eta,tau_estimate[j,:],color=ColorsList[j])
     # ax2.set_xlim([1e-3,1.4e-3])
@@ -432,8 +432,8 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
 
     # Plot errors
     # ax[1].semilogx(eta,tau_upperbound-tau_exact,'--',color='black',label='Upper bound')  # Absolute error
-    ax[1].semilogx(eta[ZeroIndex:],100*(tau_upperbound[ZeroIndex:]/tau_exact[ZeroIndex:]-1),'--',color='black',label=r'Upper bound (at $\eta \geq 0$)',zorder=15)  # Relative error
-    ax[1].semilogx(eta[:ZeroIndex],100*(tau_upperbound[:ZeroIndex]/tau_exact[:ZeroIndex]-1),'-.',color='black',label=r'Lower bound (at $\eta < 0$)',zorder=15)  # Relative error
+    ax[1].semilogx(eta[ZeroIndex:],100*(tau_upperbound[ZeroIndex:]/tau_exact[ZeroIndex:]-1),'--',color='black',label=r'Upper bound (at $t \geq 0$)',zorder=15)  # Relative error
+    ax[1].semilogx(eta[:ZeroIndex],100*(tau_upperbound[:ZeroIndex]/tau_exact[:ZeroIndex]-1),'-.',color='black',label=r'Lower bound (at $t < 0$)',zorder=15)  # Relative error
     for j in reversed(range(NumberOfEstimates)):
         p = TraceEstimationUtilitiesList[j]['AuxilliaryEstimationMethodUtilities']['p']
         # q = ax[1].semilogx(eta,tau_estimate[j,:]-tau_exact,label=r'Estimation, $p=%d$'%(p),color=ColorsList[j])  # Absolute error
@@ -445,9 +445,9 @@ def PlotTraceEstimate_IllConditioned(TraceEstimationUtilitiesList,K):
     ax[1].set_xlim([eta[0],eta[-1]])
     ax[1].set_ylim([-0.5,2.5])
     ax[1].set_yticks(numpy.arange(-0.5,2.6,0.5))
-    ax[1].set_xlabel(r'$\eta$')
-    ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(\eta)/\tau_{\mathrm{exact}}(\eta) - 1$')
-    ax[1].set_title(r'(b) Relative error of estimation of $\tau(\eta)$')
+    ax[1].set_xlabel(r'$t$')
+    ax[1].set_ylabel(r'$\tau_{\mathrm{approx}}(t)/\tau_{\mathrm{exact}}(t) - 1$')
+    ax[1].set_title(r'(b) Relative error of estimation of $\tau(t)$')
     ax[1].grid(True)
     ax[1].legend(fontsize='x-small',loc='upper left')
     ax[1].set_xscale('symlog',linthreshx=1e-8)
@@ -622,7 +622,7 @@ if __name__ == "__main__":
     # When measuring elapsed time, restrict number of processors to a single core only to measure time properly
     RestrictComputationToSingleProcessor()
 
-    UseSavedResults = False
+    UseSavedResults = True
     ResultsFilename = './doc/data/GeneralizedCrossValidation.pickle'
 
     if UseSavedResults == False:
